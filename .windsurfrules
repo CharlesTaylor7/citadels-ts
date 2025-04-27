@@ -15,3 +15,5 @@ Please do not edit these folders/files:
 - .git/
 - drizzle.config.ts
 
+In the reference folder, there is a rust implementation of the game. 
+I need help porting the logic over to typescript.
