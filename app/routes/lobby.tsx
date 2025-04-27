@@ -2,50 +2,36 @@ import { useState, useEffect } from "react";
 import {
   redirect,
   Form,
+  Link,
   useLoaderData,
   useNavigation,
   useSubmit,
 } from "react-router";
-import { db, rooms, users } from "@/db.server";
-import { eq } from "drizzle-orm";
-import { validateSessionToken } from "../auth.server";
+import { db, rooms, users, room_members, games } from "@/db.server";
+import { and, eq } from "drizzle-orm";
+import { getSession } from "@/auth.server";
 import crypto from "node:crypto";
 
 export async function loader({ request }: { request: Request }) {
-  // Get token from cookie
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const cookies = cookieHeader.split("; ");
-  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
-  const token = sessionCookie ? sessionCookie.split("=")[1] : undefined;
+  const result = await getSession(request);
 
-  if (!token) {
+  if (!result) {
     return redirect("/login");
-  }
-
-  const result = await validateSessionToken(token);
-
-  if (!result.user) {
-    // Clear the invalid session cookie
-    const headers = new Headers();
-    headers.append(
-      "Set-Cookie",
-      "session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax"
-    );
-    headers.append("Location", "/login");
-
-    return new Response(null, {
-      status: 302,
-      headers,
-    });
   }
 
   // Get available rooms
   const allRooms = await db.select().from(rooms).all();
 
   // Find the room the user is currently in, if any
-  const userRoom = allRooms.find((room) =>
-    room.players.split(",").includes(result.user.id.toString())
-  );
+  const userRoomMembership = await db
+    .select()
+    .from(room_members)
+    .where(eq(room_members.player_id, result.user.id.toString()))
+    .get();
+
+  const userRoom = userRoomMembership
+    ? allRooms.find((room) => room.id === userRoomMembership.room_id)
+    : null;
 
   // Fetch owner usernames for each room
   const roomsWithOwners = await Promise.all(
@@ -53,13 +39,17 @@ export async function loader({ request }: { request: Request }) {
       const owner = await db
         .select()
         .from(users)
-        .where(eq(users.id, Number(room.owner)))
+        .where(eq(users.id, Number(room.owner_id)))
         .get();
 
-      // Parse the players list from CSV
-      const playerIds = room.players
-        .split(",")
-        .filter((id) => id.trim() !== "");
+      // Get all players in this room from room_members table
+      const roomMembers = await db
+        .select()
+        .from(room_members)
+        .where(eq(room_members.room_id, room.id))
+        .all();
+
+      const playerIds = roomMembers.map((member) => member.player_id);
 
       // Get player usernames
       const players = await Promise.all(
@@ -73,11 +63,19 @@ export async function loader({ request }: { request: Request }) {
         })
       );
 
+      // Check if a game exists for this room
+      const game = await db
+        .select()
+        .from(games)
+        .where(eq(games.id, room.id))
+        .get();
+
       return {
         ...room,
         ownerUsername: owner ? owner.username : "Unknown",
         playerUsernames: players,
         playerCount: playerIds.length,
+        gameStarted: !!game,
       };
     })
   );
@@ -92,20 +90,9 @@ export async function loader({ request }: { request: Request }) {
 export async function action({ request }: { request: Request }) {
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
+  const result = await getSession(request);
 
-  // Get token from cookie
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const cookies = cookieHeader.split("; ");
-  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
-  const token = sessionCookie ? sessionCookie.split("=")[1] : undefined;
-
-  if (!token) {
-    return redirect("/login");
-  }
-
-  const result = await validateSessionToken(token);
-
-  if (!result.user) {
+  if (!result) {
     return redirect("/login");
   }
 
@@ -114,13 +101,14 @@ export async function action({ request }: { request: Request }) {
   if (intent === "create-room") {
     try {
       // Check if user is already in any room
-      const allRooms = await db.select().from(rooms).all();
-      const userRooms = allRooms.filter((r) =>
-        r.players.split(",").includes(userId.toString())
-      );
+      const userRoomMembership = await db
+        .select()
+        .from(room_members)
+        .where(eq(room_members.player_id, userId.toString()))
+        .get();
 
       // If user is already in a room, return error
-      if (userRooms.length > 0) {
+      if (userRoomMembership) {
         return {
           success: false,
           error:
@@ -134,9 +122,14 @@ export async function action({ request }: { request: Request }) {
       // Create the room
       await db.insert(rooms).values({
         id: roomId,
-        owner: userId.toString(),
-        players: userId.toString(), // Owner is the first player
+        owner_id: userId.toString(),
         options: "{}",
+      });
+
+      // Add the owner as a room member
+      await db.insert(room_members).values({
+        player_id: userId.toString(),
+        room_id: roomId,
       });
 
       return { success: true };
@@ -160,25 +153,18 @@ export async function action({ request }: { request: Request }) {
       }
 
       // Check if user is the owner
-      if (room.owner === userId.toString()) {
+      if (room.owner_id === userId.toString()) {
         return {
           success: false,
           error: "Room owner cannot leave. Please close the room instead.",
         };
       }
 
-      // Parse the players list
-      const playerIds = room.players
-        .split(",")
-        .filter((id) => id !== userId.toString());
-
-      // Update the room with the user removed
+      // Remove the user from the room_members table
       await db
-        .update(rooms)
-        .set({
-          players: playerIds.join(","),
-        })
-        .where(eq(rooms.id, roomId));
+        .delete(room_members)
+        .where(eq(room_members.player_id, userId.toString()))
+        .run();
 
       return { success: true };
     } catch (error) {
@@ -201,17 +187,55 @@ export async function action({ request }: { request: Request }) {
       }
 
       // Check if user is the owner
-      if (room.owner !== userId.toString()) {
-        return { success: false, error: "Only the room owner can start the game" };
+      if (room.owner_id !== userId.toString()) {
+        return {
+          success: false,
+          error: "Only the room owner can start the game",
+        };
       }
 
       // Check if there are enough players (at least 2)
-      const playerIds = room.players.split(",").filter((id) => id.trim() !== "");
-      if (playerIds.length < 2) {
-        return { 
-          success: false, 
-          error: "At least 2 players are required to start the game" 
+      const roomMembers = await db
+        .select()
+        .from(room_members)
+        .where(eq(room_members.room_id, roomId))
+        .all();
+
+      if (roomMembers.length < 2) {
+        return {
+          success: false,
+          error: "At least 2 players are required to start the game",
         };
+      }
+
+      // Check if a game already exists
+      const existingGame = await db
+        .select()
+        .from(games)
+        .where(eq(games.id, roomId))
+        .get();
+
+      if (!existingGame) {
+        // Create initial game state
+        const initialState = {
+          phase: "setup",
+          players: roomMembers.map((member) => member.player_id),
+          currentTurn: 0,
+          round: 1,
+        };
+
+        // Create a new game record
+        await db.insert(games).values({
+          id: roomId,
+          state: JSON.stringify(initialState),
+          actions: JSON.stringify([
+            {
+              type: "GAME_CREATED",
+              timestamp: Date.now(),
+              playerId: userId.toString(),
+            },
+          ]),
+        });
       }
 
       // Redirect to the game page
@@ -236,15 +260,21 @@ export async function action({ request }: { request: Request }) {
       }
 
       // Check if user is the owner
-      if (room.owner !== userId.toString()) {
+      if (room.owner_id !== userId.toString()) {
         return {
           success: false,
           error: "Only the room owner can close a room",
         };
       }
 
-      // Delete the room
-      await db.delete(rooms).where(eq(rooms.id, roomId));
+      // Delete all room members first
+      await db
+        .delete(room_members)
+        .where(eq(room_members.room_id, roomId))
+        .run();
+
+      // Then delete the room
+      await db.delete(rooms).where(eq(rooms.id, roomId)).run();
 
       return { success: true };
     } catch (error) {
@@ -256,13 +286,14 @@ export async function action({ request }: { request: Request }) {
 
     try {
       // Check if user is already in any room
-      const allRooms = await db.select().from(rooms).all();
-      const userRooms = allRooms.filter((r) =>
-        r.players.split(",").includes(userId.toString())
-      );
+      const userRoomMembership = await db
+        .select()
+        .from(room_members)
+        .where(eq(room_members.player_id, userId.toString()))
+        .get();
 
       // If user is already in a different room, return error
-      if (userRooms.length > 0 && !userRooms.some((r) => r.id === roomId)) {
+      if (userRoomMembership && userRoomMembership.room_id !== roomId) {
         return {
           success: false,
           error:
@@ -281,24 +312,30 @@ export async function action({ request }: { request: Request }) {
         return { success: false, error: "Room not found" };
       }
 
-      // Parse the current players
-      const playerIds = room.players.split(",");
+      // Check if user is already in this room
+      const isAlreadyInRoom = await db
+        .select()
+        .from(room_members)
+        .where(
+          and(
+            eq(room_members.player_id, userId.toString()),
+            eq(room_members.room_id, roomId)
+          )
+        )
+        .get();
 
-      // Check if user is already in the room
-      if (playerIds.includes(userId.toString())) {
-        return { success: true };
+      if (isAlreadyInRoom) {
+        return { success: false, error: "You are already in this room" };
       }
 
-      // Add the user to the players list
-      playerIds.push(userId.toString());
-
-      // Update the room
+      // Add user to the room_members table
       await db
-        .update(rooms)
-        .set({
-          players: playerIds.join(","),
+        .insert(room_members)
+        .values({
+          player_id: userId.toString(),
+          room_id: roomId,
         })
-        .where(eq(rooms.id, roomId));
+        .run();
 
       return { success: true };
     } catch (error) {
@@ -355,17 +392,11 @@ export default function Lobby() {
   };
 
   const handleCloseRoom = (roomId: string) => {
-    submit(
-      { intent: "close-room", roomId },
-      { method: "post", replace: true }
-    );
+    submit({ intent: "close-room", roomId }, { method: "post", replace: true });
   };
 
   const handleStartGame = (roomId: string) => {
-    submit(
-      { intent: "start-game", roomId },
-      { method: "post", replace: true }
-    );
+    submit({ intent: "start-game", roomId }, { method: "post", replace: true });
   };
 
   const handleLogout = () => {
@@ -389,10 +420,7 @@ export default function Lobby() {
         </div>
         <div className="flex-none gap-2">
           <div className="mr-2">Welcome, {user.username}!</div>
-          <button
-            onClick={handleLogout}
-            className="btn btn-error btn-sm"
-          >
+          <button onClick={handleLogout} className="btn btn-error btn-sm">
             Logout
           </button>
         </div>
@@ -419,17 +447,29 @@ export default function Lobby() {
       {rooms.length === 0 ? (
         <div className="alert alert-info">
           <div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              className="stroke-current shrink-0 w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
             <span>No rooms available. Create one to get started!</span>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {rooms.map((room) => {
-            const isOwner = room.owner === user.id.toString();
-            const isPlayer = room.players
-              .split(",")
-              .includes(user.id.toString());
+            const isOwner = room.owner_id === user.id.toString();
+            const isPlayer = room.playerUsernames.some(
+              (username) => username === user.username
+            );
 
             return (
               <div
@@ -439,13 +479,27 @@ export default function Lobby() {
                 <div className="card-body">
                   {isPlayer && (
                     <div className="absolute top-2 right-2 flex gap-2">
-                      {isOwner ? (
+                      {room.gameStarted ? (
+                        <Link
+                          to={`/game/${room.id}`}
+                          className="btn btn-primary btn-sm"
+                        >
+                          Continue Game
+                        </Link>
+                      ) : isOwner ? (
                         <>
                           <button
                             onClick={() => handleStartGame(room.id)}
-                            disabled={navigation.state !== "idle" || room.playerCount < 2}
+                            disabled={
+                              navigation.state !== "idle" ||
+                              room.playerCount < 2
+                            }
                             className="btn btn-success btn-sm"
-                            title={room.playerCount < 2 ? "Need at least 2 players" : "Start the game"}
+                            title={
+                              room.playerCount < 2
+                                ? "Need at least 2 players"
+                                : "Start the game"
+                            }
                           >
                             Start Game
                           </button>
@@ -468,15 +522,15 @@ export default function Lobby() {
                       )}
                     </div>
                   )}
-                  
+
                   <div className="mb-2">
-                    <div className="flex items-center mb-2">
-                      <span className="font-medium mr-2">Owner:</span>
-                      <div className="badge badge-warning">
-                        {room.ownerUsername}
+                    {room.gameStarted && (
+                      <div className="mb-2">
+                        <div className="badge badge-lg badge-primary">
+                          Game in progress
+                        </div>
                       </div>
-                    </div>
-                    
+                    )}
                     <div>
                       <div className="font-medium mb-1">
                         Players ({room.playerCount}):
@@ -486,7 +540,9 @@ export default function Lobby() {
                           <div key={index} className="flex items-center py-1">
                             <span className="badge badge-sm badge-success mr-2"></span>
                             <span
-                              className={username === user.username ? "font-medium" : ""}
+                              className={
+                                username === user.username ? "font-medium" : ""
+                              }
                             >
                               {username} {username === user.username && "(You)"}
                             </span>
@@ -503,18 +559,24 @@ export default function Lobby() {
 
                   {!isPlayer && (
                     <div className="card-actions justify-end">
-                      <button
-                        onClick={() => handleJoinRoom(room.id)}
-                        disabled={
-                          navigation.state !== "idle" ||
-                          (userRoom !== null && userRoom !== room.id)
-                        }
-                        className={`btn ${userRoom !== null && userRoom !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
-                      >
-                        {userRoom !== null && userRoom !== room.id
-                          ? "Already in another room"
-                          : "Join Room"}
-                      </button>
+                      {room.gameStarted ? (
+                        <div className="w-full text-center text-sm text-gray-500">
+                          Game already in progress
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleJoinRoom(room.id)}
+                          disabled={
+                            navigation.state !== "idle" ||
+                            (userRoom !== null && userRoom !== room.id)
+                          }
+                          className={`btn ${userRoom !== null && userRoom !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
+                        >
+                          {userRoom !== null && userRoom !== room.id
+                            ? "Already in another room"
+                            : "Join Room"}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

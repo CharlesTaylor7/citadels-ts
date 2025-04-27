@@ -11,28 +11,17 @@ import { eq } from "drizzle-orm";
 import {
   generateSessionToken,
   createSession,
-  validateSessionToken,
   verifyPasswordHash,
-  verifyPasswordStrength,
-} from "../auth.server";
+  getSession,
+} from "@/auth.server";
 
 export async function loader({ request }: { request: Request }) {
-  // Get token from cookie
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const cookies = cookieHeader.split("; ");
-  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
-  const token = sessionCookie ? sessionCookie.split("=")[1] : undefined;
+  const result = await getSession(request);
 
-  if (token) {
-    const result = await validateSessionToken(token);
-
-    // If already logged in, redirect to lobby
-    if (result.user) {
-      return redirect("/lobby");
-    }
+  // If already logged in, redirect to lobby
+  if (result) {
+    return redirect("/lobby");
   }
-
-  return { isLoggedIn: false };
 }
 
 export async function action({ request }: { request: Request }) {

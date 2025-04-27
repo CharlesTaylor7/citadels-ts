@@ -32,9 +32,7 @@ export async function createSession(
   return session;
 }
 
-export async function validateSessionToken(
-  token: string
-): Promise<SessionResult> {
+async function validateSessionToken(token: string): Promise<SessionResult> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const result = await db
     .select({ user: users, session: sessions })
@@ -119,4 +117,18 @@ export async function verifyPasswordStrength(
     }
   }
   return true;
+}
+
+export async function getSession(
+  request: Request
+): Promise<{ session: Session; user: User } | null> {
+  // Get token from cookie
+  const cookieHeader = request.headers.get("Cookie") || "";
+  const cookies = cookieHeader.split("; ");
+  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
+  const token = sessionCookie ? sessionCookie.split("=")[1] : undefined;
+
+  // If token exists, validate it
+  if (!token) return null;
+  return await validateSessionToken(token);
 }

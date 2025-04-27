@@ -1,7 +1,6 @@
 import type { Route } from "./+types/home";
 import { redirect } from "react-router";
-import { validateSessionToken } from "@/auth.server";
-import { getSession } from "@/session";
+import { getSession } from "@/auth.server";
 import { db, games, room_members, rooms } from "@/db.server";
 import { eq } from "drizzle-orm";
 
