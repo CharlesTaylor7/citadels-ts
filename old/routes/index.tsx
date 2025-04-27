@@ -1,8 +1,8 @@
 // app/routes/index.tsx
 import { createFileRoute, useRouter, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { db } from "../db";
-import { validateSessionToken } from "../services/auth-service";
+import { db } from "../../app/db";
+import { validateSessionToken } from "../../app/services/auth-service";
 import { getCookie } from "vinxi/server";
 
 export const Route = createFileRoute("/")({

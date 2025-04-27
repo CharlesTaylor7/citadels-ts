@@ -1,8 +1,8 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { db } from "../db";
-import { users, User } from "../db/schema";
+import { db } from "../../app/db";
+import { users, User } from "../../app/db/schema";
 import { eq } from "drizzle-orm";
 import {
   generateSessionToken,
@@ -10,7 +10,7 @@ import {
   validateSessionToken,
   verifyPasswordHash,
   verifyPasswordStrength,
-} from "../services/auth-service";
+} from "../../app/services/auth-service";
 import { getCookie } from "vinxi/server";
 
 // Server function to handle login

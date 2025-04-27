@@ -1,10 +1,10 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
-import { db } from "../db";
-import { rooms, users, User, Room } from "../db/schema";
+import { db } from "../../app/db";
+import { rooms, users, User, Room } from "../../app/db/schema";
 import { eq, and } from "drizzle-orm";
-import { validateSessionToken } from "../services/auth-service";
+import { validateSessionToken } from "../../app/services/auth-service";
 import crypto from "node:crypto";
 
 // Server function to get current user
