@@ -11,17 +11,22 @@
     "lint": "eslint app/"
   },
   "dependencies": {
+    "@fastify/websocket": "^11.0.2",
     "@libsql/client": "^0.15.4",
+    "@mcansh/remix-fastify": "4.0.8",
     "@node-rs/argon2": "^2.0.2",
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
     "@react-router/node": "^7.5.2",
     "@react-router/serve": "^7.5.2",
+    "@trpc/server": "^11.1.1",
     "drizzle-orm": "^0.43.1",
+    "fastify": "^5.3.2",
     "isbot": "^5.1.17",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router": "^7.5.2"
+    "react-router": "^7.5.2",
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@react-router/dev": "^7.5.2",

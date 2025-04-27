@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
-import { users, db } from "@/db.server";
+import { users, db } from "@/server/db.server";
 import { eq } from "drizzle-orm";
 import {
   generateSessionToken,
   createSession,
   hashPassword,
   verifyPasswordStrength,
-} from "../auth.server";
+} from "../server/auth.server";
 
 export async function loader() {}
 

@@ -7,9 +7,9 @@ import {
   useNavigation,
   useSubmit,
 } from "react-router";
-import { db, rooms, users, room_members, games } from "@/db.server";
+import { db, rooms, users, room_members, games } from "@/server/db.server";
 import { and, eq } from "drizzle-orm";
-import { getSession } from "@/auth.server";
+import { getSession } from "@/server/auth.server";
 import { randomUUID } from "node:crypto";
 import { GameConfigUtils, LobbyUtils } from "@/game/lobby";
 import { Game } from "@/game/game";

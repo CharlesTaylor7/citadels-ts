@@ -1,5 +1,5 @@
 // https://lucia-auth.com/sessions/basic-api/drizzle-orm
-import { users, sessions, Session, User } from "@/db.server";
+import { users, sessions, Session, User } from "@/server/db.server";
 import crypto from "node:crypto";
 import {
   encodeHexLowerCase,

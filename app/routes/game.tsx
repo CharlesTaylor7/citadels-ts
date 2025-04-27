@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { redirect, useLoaderData, useParams, Link } from "react-router";
 
-import { db, games, rooms, users, room_members } from "@/db.server";
+import { db, games, rooms, users, room_members } from "@/server/db.server";
 import { and, eq } from "drizzle-orm";
-import { getSession } from "@/auth.server";
+import { getSession } from "@/server/auth.server";
 export async function loader({
   request,
   params,
@@ -57,7 +57,7 @@ export async function loader({
   // Parse game state and actions
   let gameState = {};
   let gameActions = [];
-  
+
   try {
     gameState = JSON.parse(game.state);
     gameActions = JSON.parse(game.actions);
@@ -94,7 +94,7 @@ export async function loader({
     game: {
       ...game,
       state: gameState,
-      actions: gameActions
+      actions: gameActions,
     },
     players,
   };
@@ -114,31 +114,44 @@ export default function Game() {
   const currentPlayerIndex = game.state.players?.findIndex(
     (player: any) => player.id === user.id.toString()
   );
-  const currentPlayer = currentPlayerIndex >= 0 ? game.state.players[currentPlayerIndex] : null;
+  const currentPlayer =
+    currentPlayerIndex >= 0 ? game.state.players[currentPlayerIndex] : null;
 
   // Determine the active player and turn type
-  const activePlayerIndex = game.state.activeTurn?.type === "Call" && 
-    game.state.characters?.characters[game.state.activeTurn.call.index]?.player ? 
-    game.state.characters.characters[game.state.activeTurn.call.index].player[0] : null;
-  
-  const activePlayerId = activePlayerIndex !== null && game.state.players ? 
-    game.state.players[activePlayerIndex]?.id : null;
-  
-  const activePlayerName = activePlayerId ? 
-    players.find(p => p.id === activePlayerId)?.username : 'Unknown';
+  const activePlayerIndex =
+    game.state.activeTurn?.type === "Call" &&
+    game.state.characters?.characters[game.state.activeTurn.call.index]?.player
+      ? game.state.characters.characters[game.state.activeTurn.call.index]
+          .player[0]
+      : null;
+
+  const activePlayerId =
+    activePlayerIndex !== null && game.state.players
+      ? game.state.players[activePlayerIndex]?.id
+      : null;
+
+  const activePlayerName = activePlayerId
+    ? players.find((p) => p.id === activePlayerId)?.username
+    : "Unknown";
 
   // Get the current turn phase
-  const turnPhase = game.state.activeTurn?.type || 'Unknown';
-  
+  const turnPhase = game.state.activeTurn?.type || "Unknown";
+
   // Get the active character if in Call phase
-  const activeCharacter = game.state.activeTurn?.type === "Call" ? 
-    game.state.characters?.characters[game.state.activeTurn.call.index]?.role : null;
+  const activeCharacter =
+    game.state.activeTurn?.type === "Call"
+      ? game.state.characters?.characters[game.state.activeTurn.call.index]
+          ?.role
+      : null;
 
   return (
     <div className="max-w-4xl mx-auto p-5 bg-gray-900 min-h-screen text-white">
       <div className="flex justify-between mb-6">
         <h1 className="text-2xl font-bold">Citadels Game</h1>
-        <Link to="/lobby" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+        <Link
+          to="/lobby"
+          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+        >
           Back to Lobby
         </Link>
       </div>
@@ -151,11 +164,12 @@ export default function Game() {
             const playerIndex = game.state.players?.findIndex(
               (p: any) => p.id === player.id
             );
-            const playerState = playerIndex >= 0 ? game.state.players[playerIndex] : null;
-            
+            const playerState =
+              playerIndex >= 0 ? game.state.players[playerIndex] : null;
+
             // Check if this is the active player
             const isActivePlayer = player.id === activePlayerId;
-            
+
             return (
               <div
                 key={player.id}
@@ -176,7 +190,7 @@ export default function Game() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-1 mt-1">
                   {player.id === room.owner_id && (
                     <span className="text-xs bg-yellow-600 text-white px-1 py-0.5 rounded">
@@ -194,18 +208,26 @@ export default function Game() {
                     </span>
                   )}
                   {playerState?.roles?.map((role: string) => (
-                    <span key={role} className="text-xs bg-purple-600 text-white px-1 py-0.5 rounded">
+                    <span
+                      key={role}
+                      className="text-xs bg-purple-600 text-white px-1 py-0.5 rounded"
+                    >
                       {role}
                     </span>
                   ))}
                 </div>
-                
+
                 {playerState?.city?.length > 0 && (
                   <div className="mt-2">
-                    <span className="text-xs text-gray-400">City ({playerState.city.length}):</span>
+                    <span className="text-xs text-gray-400">
+                      City ({playerState.city.length}):
+                    </span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {playerState.city.map((district: any, idx: number) => (
-                        <span key={idx} className="text-xs bg-gray-600 text-white px-1 py-0.5 rounded">
+                        <span
+                          key={idx}
+                          className="text-xs bg-gray-600 text-white px-1 py-0.5 rounded"
+                        >
                           {district.name}
                         </span>
                       ))}
@@ -228,7 +250,10 @@ export default function Game() {
               {currentPlayer.hand?.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {currentPlayer.hand.map((card: string, idx: number) => (
-                    <div key={idx} className="w-20 h-28 bg-blue-800 rounded flex items-center justify-center text-white text-center p-1">
+                    <div
+                      key={idx}
+                      className="w-20 h-28 bg-blue-800 rounded flex items-center justify-center text-white text-center p-1"
+                    >
                       {card}
                     </div>
                   ))}
@@ -243,21 +268,26 @@ export default function Game() {
             <h3 className="font-medium mb-2 text-white">Characters</h3>
             {game.state.characters?.characters ? (
               <div className="flex flex-wrap gap-2">
-                {game.state.characters.characters.map((char: any, idx: number) => {
-                  const hasPlayer = char.player !== null;
-                  const playerName = hasPlayer ? 
-                    players.find(p => game.state.players[char.player[0]]?.id === p.id)?.username : null;
-                  
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`w-full p-2 rounded ${hasPlayer ? 'bg-purple-800' : 'bg-gray-600'} flex justify-between`}
-                    >
-                      <span>{char.role}</span>
-                      {playerName && <span>{playerName}</span>}
-                    </div>
-                  );
-                })}
+                {game.state.characters.characters.map(
+                  (char: any, idx: number) => {
+                    const hasPlayer = char.player !== null;
+                    const playerName = hasPlayer
+                      ? players.find(
+                          (p) => game.state.players[char.player[0]]?.id === p.id
+                        )?.username
+                      : null;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-full p-2 rounded ${hasPlayer ? "bg-purple-800" : "bg-gray-600"} flex justify-between`}
+                      >
+                        <span>{char.role}</span>
+                        {playerName && <span>{playerName}</span>}
+                      </div>
+                    );
+                  }
+                )}
               </div>
             ) : (
               <p className="text-gray-400">No characters assigned yet</p>
@@ -269,11 +299,22 @@ export default function Game() {
             <p className="text-gray-200">Current Turn: {activePlayerName}</p>
             <p className="text-gray-200">Phase: {turnPhase}</p>
             {activeCharacter && (
-              <p className="text-gray-200">Active Character: {activeCharacter}</p>
+              <p className="text-gray-200">
+                Active Character: {activeCharacter}
+              </p>
             )}
-            <p className="text-gray-200">Crowned Player: {game.state.crowned ? 
-              players.find(p => game.state.players[game.state.crowned[0]]?.id === p.id)?.username : 'Unknown'}</p>
-            <p className="text-gray-200">Deck Size: {game.state.deck?.deck?.length || 0} cards</p>
+            <p className="text-gray-200">
+              Crowned Player:{" "}
+              {game.state.crowned
+                ? players.find(
+                    (p) =>
+                      game.state.players[game.state.crowned[0]]?.id === p.id
+                  )?.username
+                : "Unknown"}
+            </p>
+            <p className="text-gray-200">
+              Deck Size: {game.state.deck?.deck?.length || 0} cards
+            </p>
           </div>
         </div>
 
@@ -282,7 +323,9 @@ export default function Game() {
           <div className="h-40 overflow-y-auto bg-gray-900 p-2 border border-gray-600 rounded">
             {game.state.logs?.length > 0 ? (
               game.state.logs.map((log: string, idx: number) => (
-                <p key={idx} className="text-sm text-gray-300">{log}</p>
+                <p key={idx} className="text-sm text-gray-300">
+                  {log}
+                </p>
               ))
             ) : (
               <p className="text-sm text-gray-300">Game started</p>
