@@ -8,7 +8,8 @@ import {
   generateSessionToken,
   createSession,
   validateSessionToken,
-  verifyPassword,
+  verifyPasswordHash,
+  verifyPasswordStrength,
 } from "../services/auth-service";
 import { getCookie } from "vinxi/server";
 
@@ -30,7 +31,8 @@ const login = createServerFn({ method: "POST" })
     }
 
     // Verify password
-    if (!verifyPassword(password, user.hashed_password)) {
+    const passwordValid = await verifyPasswordHash(user.hashed_password, password);
+    if (!passwordValid) {
       return { success: false, error: "Invalid username or password" };
     }
 
@@ -96,6 +98,19 @@ function LoginComponent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    
+    // Check password strength before submitting
+    try {
+      const isStrongPassword = await verifyPasswordStrength(password);
+      if (!isStrongPassword) {
+        setError("Password is too weak or has been compromised. Please use a stronger password.");
+        return;
+      }
+    } catch (err) {
+      // If the password strength check fails, continue with login anyway
+      console.warn("Password strength check failed", err);
+    }
+    
     setIsLoading(true);
 
     try {

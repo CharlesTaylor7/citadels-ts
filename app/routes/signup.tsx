@@ -4,53 +4,71 @@ import { useState } from "react";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { generateSessionToken, createSession } from "../services/auth-service";
-import crypto from "node:crypto";
-
-// Function to hash password (using SHA-256 for simplicity)
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
-}
+import {
+  generateSessionToken,
+  createSession,
+  hashPassword,
+  verifyPasswordStrength,
+} from "../services/auth-service";
+import { getCookie } from "vinxi/server";
 
 // Server function to handle signup
 const signup = createServerFn({ method: "POST" })
   .validator((d: { username: string; password: string }) => d)
   .handler(async ({ data }) => {
-    const { username, password } = data;
+    try {
+      console.log('[Server] Signup request received for username:', data.username);
+      const { username, password } = data;
 
-    // Check if username already exists
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+      // Check if username already exists
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .get();
 
-    if (existingUser) {
-      return { success: false, error: "Username already exists" };
+      if (existingUser) {
+        console.log('[Server] Signup failed: Username already exists');
+        return { success: false, error: "Username already exists" };
+      }
+
+      console.log('[Server] Hashing password...');
+      // Hash the password with argon2
+      const hashedPassword = await hashPassword(password);
+      console.log('[Server] Password hashed successfully');
+
+      console.log('[Server] Creating user in database...');
+      // Create the user
+      const [user] = await db
+        .insert(users)
+        .values({
+          username,
+          hashed_password: hashedPassword,
+        })
+        .returning();
+      console.log('[Server] User created with ID:', user?.id);
+
+      // Create session
+      console.log('[Server] Generating session token...');
+      const token = generateSessionToken();
+      console.log('[Server] Creating session...');
+      await createSession(token, user.id);
+      console.log('[Server] Session created successfully');
+
+      // Return success with session token
+      console.log('[Server] Signup completed successfully');
+      return {
+        success: true,
+        token,
+        user: { id: user.id, username: user.username },
+      };
+    } catch (error: any) {
+      console.error('[Server] Signup error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'An unexpected error occurred during signup' 
+      };
     }
-
-    // Hash the password
-    const hashedPassword = hashPassword(password);
-
-    // Create the user
-    const [user] = await db
-      .insert(users)
-      .values({
-        username,
-        password: hashedPassword,
-      })
-      .returning();
-
-    // Create session
-    const token = generateSessionToken();
-    await createSession(token, user.id);
-
-    // Return success with session token
-    return {
-      success: true,
-      token,
-      user: { id: user.id, username: user.username },
-    };
   });
 
 export const Route = createFileRoute("/signup")({
@@ -75,30 +93,48 @@ function SignupComponent() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return;
+    // Check password strength
+    try {
+      const isStrongPassword = await verifyPasswordStrength(password);
+      if (!isStrongPassword) {
+        setError(
+          "Password is too weak or has been compromised. Please use a stronger password."
+        );
+        return;
+      }
+    } catch (err) {
+      // If the password strength check fails, continue with signup anyway
+      console.warn("Password strength check failed", err);
     }
 
     setIsLoading(true);
 
     try {
+      console.log('Attempting signup with:', { username, passwordLength: password.length });
       const result = await signup({ data: { username, password } });
+      console.log('Signup result:', result);
 
       if (result.success) {
         // Set the session token in a cookie
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30); // 30 days
         document.cookie = `session=${result.token}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax`;
-        
+
         // Navigate to lobby
         router.navigate({ to: "/lobby" });
       } else {
         setError(result.error || "Signup failed");
       }
-    } catch (err) {
-      setError("An error occurred during signup");
-      console.error(err);
+    } catch (err: any) {
+      console.error('Signup error details:', err);
+      // Show more detailed error information
+      if (err.message) {
+        setError(`Error: ${err.message}`);
+      } else if (typeof err === 'string') {
+        setError(`Error: ${err}`);
+      } else {
+        setError("An error occurred during signup. Check console for details.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +144,9 @@ function SignupComponent() {
     <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
       <h1>Sign Up for Citadels</h1>
 
-      {error && <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>}
+      {error && (
+        <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "15px" }}>
