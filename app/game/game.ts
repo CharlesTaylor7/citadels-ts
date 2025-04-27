@@ -373,9 +373,9 @@ export class Characters {
 }
 
 /**
- * Game state
+ * Game state type definition
  */
-export class Game {
+export interface GameState {
   players: Player[];
   characters: Characters;
   deck: Deck<DistrictName>;
@@ -385,146 +385,137 @@ export class Game {
   firstToComplete: PlayerIndex | null;
   followup: Followup | null;
   notifications: Notification[];
-
   museum: Museum;
   alchemist: number;
   taxCollector: number;
+}
 
-  /**
-   * Create a new game
-   */
-  constructor(lobby: Lobby) {
-    // Initialize players
-    this.players = lobby.players.map((player, index) =>
-      createPlayer({ 0: index }, player.id, player.name)
-    );
+/**
+ * Create a new game state
+ */
+export function createGame(lobby: Lobby): GameState {
+  // Initialize players
+  const players = lobby.players.map((player, index) =>
+    createPlayer({ 0: index }, player.id, player.name)
+  );
 
-    // Initialize characters
-    this.characters = new Characters(ROLE_NAMES);
+  // Initialize characters
+  const characters = new Characters(ROLE_NAMES);
 
-    // Initialize deck with all district cards
-    this.deck = new Deck<DistrictName>(DISTRICT_NAMES);
-    this.deck.shuffle();
+  // Initialize deck with all district cards
+  const deck = new Deck<DistrictName>(DISTRICT_NAMES);
+  deck.shuffle();
 
-    // Initialize museum
-    this.museum = new Museum();
+  // Initialize museum
+  const museum = new Museum();
 
-    // Initialize other state
-    this.logs = [];
-    this.crowned = { 0: 0 }; // First player is crowned initially
-    this.taxCollector = 0;
-    this.alchemist = 0;
-    this.firstToComplete = null;
-    this.followup = null;
-    this.notifications = [];
+  // Deal initial cards
+  for (const player of players) {
+    player.hand = deck.drawMany(4);
+  }
 
-    // Deal initial cards
-    for (const player of this.players) {
-      player.hand = this.deck.drawMany(4);
-    }
-
-    // Start with draft phase
-    this.activeTurn = {
+  // Create the game state
+  return {
+    players,
+    characters,
+    deck,
+    museum,
+    logs: [],
+    crowned: { 0: 0 }, // First player is crowned initially
+    taxCollector: 0,
+    alchemist: 0,
+    firstToComplete: null,
+    followup: null,
+    notifications: [],
+    activeTurn: {
       type: "Draft",
-      draft: beginDraft(this.players.length, this.crowned, ROLE_NAMES),
-    };
-  }
+      draft: beginDraft(players.length, { 0: 0 }, ROLE_NAMES),
+    },
+  };
+}
 
-  /**
-   * Get the active player
-   */
-  activePlayer(): Player | undefined {
-    const activeRole = this.activeRole();
-    if (!activeRole || activeRole.player === null) {
-      return undefined;
-    }
-    return this.players[activeRole.player[0]];
-  }
-
-  /**
-   * Get a mutable reference to the active player
-   */
-  activePlayerMut(): Player | undefined {
-    return this.activePlayer();
-  }
-
-  /**
-   * Get the active role
-   */
-  activeRole(): Character | undefined {
-    if (this.activeTurn.type === "Call") {
-      return this.characters.characters[this.activeTurn.call.index];
-    }
+/**
+ * Get the active player
+ */
+export function getActivePlayer(game: GameState): Player | undefined {
+  const activeRole = getActiveRole(game);
+  if (!activeRole || activeRole.player === null) {
     return undefined;
   }
+  return game.players[activeRole.player[0]];
+}
 
-  /**
-   * Get a mutable reference to the active role
-   */
-  activeRoleMut(): Character | undefined {
-    return this.activeRole();
+/**
+ * Get the active role
+ */
+export function getActiveRole(game: GameState): Character | undefined {
+  if (game.activeTurn.type === "Call") {
+    return game.characters.characters[game.activeTurn.call.index];
+  }
+  return undefined;
+}
+
+/**
+ * Complete a build action
+ */
+export function completeAction(
+  game: GameState,
+  playerIndex: PlayerIndex,
+  cost: number,
+  district: DistrictName
+): void {
+  const player = game.players[playerIndex[0]];
+  player.gold -= cost;
+
+  // Remove from hand
+  const index = player.hand.findIndex((d) => d === district);
+  if (index >= 0) {
+    player.hand.splice(index, 1);
   }
 
-  /**
-   * Complete a build action
-   */
-  completeAction(
-    playerIndex: PlayerIndex,
-    cost: number,
-    district: DistrictName
-  ): void {
-    const player = this.players[playerIndex[0]];
-    player.gold -= cost;
+  // Add to city
+  player.city.push(createCityDistrict(district));
 
-    // Remove from hand
-    const index = player.hand.findIndex((d) => d === district);
-    if (index >= 0) {
-      player.hand.splice(index, 1);
-    }
-
-    // Add to city
-    player.city.push(createCityDistrict(district));
-
-    // Track alchemist refund
-    if (this.activeRole()?.role === "Alchemist") {
-      this.alchemist += cost;
-    }
-
-    // Check for first to complete
-    if (this.firstToComplete === null && player.city.length >= 8) {
-      this.firstToComplete = playerIndex;
-    }
+  // Track alchemist refund
+  if (getActiveRole(game)?.role === "Alchemist") {
+    game.alchemist += cost;
   }
 
-  /**
-   * Discard a district
-   */
-  discardDistrict(district: DistrictName): void {
-    this.deck.discardToBottom(district);
+  // Check for first to complete
+  if (game.firstToComplete === null && player.city.length >= 8) {
+    game.firstToComplete = playerIndex;
   }
+}
 
-  /**
-   * Perform an action
-   */
-  performAction(action: ActionSubmission): ActionResult {
-    return performAction(this, action);
+/**
+ * Discard a district
+ */
+export function discardDistrict(game: GameState, district: DistrictName): void {
+  game.deck.discardToBottom(district);
+}
+
+/**
+ * Perform an action
+ */
+export function performGameAction(game: GameState, action: ActionSubmission): ActionResult {
+  return performAction(game, action);
+}
+
+/**
+ * Gain cards for the active player
+ */
+export function gainCards(game: GameState, amount: number): void {
+  const player = getActivePlayer(game);
+  if (!player) return;
+
+  const cards = game.deck.drawMany(amount);
+  player.hand.push(...cards);
+
+  const activeRole = getActiveRole(game);
+  if (activeRole) {
+    activeRole.logs.push(`${player.name} gains ${amount} cards.`);
   }
-
-  /**
-   * Gain cards for the active player
-   */
-  gainCards(amount: number): void {
-    const player = this.activePlayerMut();
-    if (!player) return;
-
-    const cards = this.deck.drawMany(amount);
-    player.hand.push(...cards);
-
-    const activeRole = this.activeRoleMut();
-    if (activeRole) {
-      activeRole.logs.push(`${player.name} gains ${amount} cards.`);
-    }
-  }
+}
 
   /**
    * Choose a card from a selection
@@ -588,204 +579,22 @@ export class Game {
               draft.initialDiscard !== null
             ) {
               const initial = draft.initialDiscard;
-              draft.initialDiscard = null;
-              draft.remaining.push(initial);
-            }
 
-            // If no more roles to draft, move to theater step
-            if (draft.remaining.length === 0) {
-              draft.theaterStep = true;
-
-              // Check for Theater
-              for (let i = 0; i < this.players.length; i++) {
-                const player = this.players[i];
-                if (player.cityHas("Theater")) {
-                  // Allow player to swap roles
-                  return {
-                    success: true,
-                    value: undefined,
-                  };
-                }
-              }
-            }
-          }
-          break;
-        }
-
-        case "Call": {
-          const call = this.activeTurn.call;
-          const character = this.characters.characters[call.index];
-
-          // Skip characters with no player
-          if (character.player === null) {
-            this.callNext();
-            return this.startTurn();
-          }
-
-          // Check for bewitched
-          if (character.markers.includes("Bewitched")) {
-            const index = character.markers.indexOf("Bewitched");
-            if (index >= 0) {
-              character.markers.splice(index, 1);
-            }
-
-            // Skip bewitched character's turn
-            this.callNext();
-            return this.startTurn();
-          }
-
-          // Check for killed
-          if (character.markers.includes("Killed")) {
-            const index = character.markers.indexOf("Killed");
-            if (index >= 0) {
-              character.markers.splice(index, 1);
-            }
-
-            // Skip killed character's turn
-            this.callNext();
-            return this.startTurn();
-          }
-
-          // Set up available actions for the character
-          character.actions = [];
-
-          // Add gather action
-          character.actions.push({
-            action: "Gather",
-            resource: "Gold",
-          });
-
-          character.actions.push({
-            action: "Gather",
-            resource: "Cards",
-          });
-
-          // Add role-specific actions
-          const roleData = ROLE_NAMES.find((name) => name === character.role);
-          if (roleData) {
-            // Here we would add role-specific actions based on the character
-            // This would be implemented based on the specific role
-            switch (character.role) {
-              case "Assassin":
-                // Add assassin actions
-                character.actions.push({
-                  action: "Kill",
-                  role: null,
-                });
-                break;
-
-              case "Thief":
-                // Add thief actions
-                character.actions.push({
-                  action: "Steal",
-                  role: null,
-                });
-                break;
-
-              case "Magician":
-                // Add magician actions
-                character.actions.push({
-                  action: "Magician",
-                  magicianAction: null,
-                });
-                break;
-
-              case "King":
-                // Add king actions
-                // King gets crown and resources for noble districts
-                this.crowned = character.player;
-                this.gainResourcesForSuit("Noble");
-                break;
-
-              case "Bishop":
-                // Add bishop actions
-                // Bishop gets resources for religious districts
-                this.gainResourcesForSuit("Religious");
-                break;
-
-              case "Merchant":
-                // Add merchant actions
-                // Merchant gets 1 gold and resources for trade districts
-                const player = this.players[character.player[0]];
-                player.gold += 1;
-                character.logs.push(
-                  `${player.name} gains 1 gold as the Merchant.`
-                );
-                this.gainResourcesForSuit("Trade");
-                break;
-
-              case "Architect":
-                // Add architect actions
-                // Architect draws 2 cards
-                this.gainCards(2);
-                break;
-
-              case "Warlord":
-                // Add warlord actions
-                // Warlord gets resources for military districts
-                this.gainResourcesForSuit("Military");
-                character.actions.push({
-                  action: "Destroy",
-                  target: null,
-                });
-                break;
-            }
-          }
-
-          // Add build actions
-          const player = this.players[character.player[0]];
-          for (const district of player.hand) {
-            const data = getDistrictData(district);
-            if (player.gold >= data.cost && !player.cityHas(district)) {
-              character.actions.push({
-                action: "Build",
-                method: {
-                  method: "Normal",
-                  district,
-                },
-              });
-            }
-          }
-
-          // Check for blackmail
-          const blackmailerChar = this.characters.characters.find(
-            (c) => c.role === "Blackmailer"
-          );
-          if (blackmailerChar && blackmailerChar.player !== null) {
-            const blackmailMarker = character.markers.find(
-              (m) =>
-                typeof m === "object" && "type" in m && m.type === "Blackmail"
-            );
-
-            if (blackmailMarker) {
-              character.actions.push({
-                action: "PayBribe",
-              });
-
-              character.actions.push({
-                action: "IgnoreBlackmail",
-              });
-            }
-          }
-
-          break;
-        }
-      }
-
-      return { success: true, value: undefined };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * Gain resources for districts of a specific suit
-   */
-  gainResourcesForSuit(suit: CardSuit): void {
-    const player = this.activePlayerMut();
+  if (nextIndex !== undefined) {
+    game.activeTurn = {
+      type: "Call",
+      call: {
+        index: nextIndex,
+        endOfRound: false,
+      },
+    };
+  } else {
+    // Check for Emperor
+    const emperor = game.characters.characters.findIndex(
+      (c) => c.role === "Emperor"
+    );
+    if (emperor >= 0) {
+      game.activeTurn = {
     if (!player) return;
 
     const count = player.countSuitForResourceGain(suit);
