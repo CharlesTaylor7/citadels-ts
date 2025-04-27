@@ -19,21 +19,28 @@ export const users = table("users", {
 
 export const sessions = table("sessions", {
   id: text("id").primaryKey(),
-  // nullable. guest users can spectate without playing
-  userId: integer("user_id").references(() => users.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
   expiresAt: integer("expires_at", {
     mode: "timestamp",
   }).notNull(),
 });
 
+export const room_members = table("room_members", {
+  player_id: text("player_id")
+    .primaryKey()
+    .references(() => users.id),
+  room_id: text("room_id")
+    .notNull()
+    .references(() => rooms.id),
+});
 export const rooms = table("rooms", {
   id: text("id").primaryKey(),
-  owner: text("owner")
+  owner_id: text("owner_id")
     .notNull()
     .references(() => users.id),
-  // csv of player ids, in turn order
-  players: text("players").notNull(),
-  // json of options
+  // json object of options
   options: text("options").notNull(),
 });
 

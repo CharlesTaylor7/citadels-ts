@@ -79,9 +79,9 @@ export async function verifyPassword(
 }
 
 export type SessionResult = {
-  session: Session | null;
-  user: User | null;
-};
+  session: Session;
+  user: User;
+} | null;
 
 export async function hashPassword(password: string): Promise<string> {
   return await hash(password, {

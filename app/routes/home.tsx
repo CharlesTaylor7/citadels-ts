@@ -1,6 +1,9 @@
 import type { Route } from "./+types/home";
-import { redirect } from 'react-router'
-import { validateSessionToken } from '@/auth.server';
+import { redirect } from "react-router";
+import { validateSessionToken } from "@/auth.server";
+import { getSession } from "@/session";
+import { db, games, room_members, rooms } from "@/db.server";
+import { eq } from "drizzle-orm";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -10,24 +13,20 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader({ request }: { request: Request }) {
-  // Get token from cookie
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const cookies = cookieHeader.split("; ");
-  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
-  const token = sessionCookie ? sessionCookie.split("=")[1] : undefined;
-
-  // If token exists, validate it
-  if (token) {
-    const result = await validateSessionToken(token);
-    
-    // If user is authenticated, redirect to lobby
-    if (result.user) {
-      return redirect("/lobby");
-    }
+  const result = await getSession(request);
+  if (!result) return redirect("/login");
+  const { user } = result;
+  // check if user is in a room and the game has started, then redirect to the game.
+  const room = await db
+    .select({ id: room_members.room_id })
+    .from(room_members)
+    .innerJoin(games, eq(room_members.room_id, games.id))
+    .where(eq(room_members.player_id, user.id.toString()))
+    .get();
+  if (room) {
+    return redirect(`/game/${room.id}`);
   }
-  
-  // Otherwise redirect to login
-  return redirect("/login");
+  return redirect("/lobby");
 }
 
 export default function Home() {

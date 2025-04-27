@@ -185,6 +185,41 @@ export async function action({ request }: { request: Request }) {
       console.error("Error leaving room:", error);
       return { success: false, error: "Failed to leave room" };
     }
+  } else if (intent === "start-game") {
+    try {
+      const roomId = formData.get("roomId") as string;
+
+      // Check if room exists
+      const room = await db
+        .select()
+        .from(rooms)
+        .where(eq(rooms.id, roomId))
+        .get();
+
+      if (!room) {
+        return { success: false, error: "Room not found" };
+      }
+
+      // Check if user is the owner
+      if (room.owner !== userId.toString()) {
+        return { success: false, error: "Only the room owner can start the game" };
+      }
+
+      // Check if there are enough players (at least 2)
+      const playerIds = room.players.split(",").filter((id) => id.trim() !== "");
+      if (playerIds.length < 2) {
+        return { 
+          success: false, 
+          error: "At least 2 players are required to start the game" 
+        };
+      }
+
+      // Redirect to the game page
+      return redirect(`/game/${roomId}`);
+    } catch (error) {
+      console.error("Error starting game:", error);
+      return { success: false, error: "Failed to start game" };
+    }
   } else if (intent === "close-room") {
     const roomId = formData.get("roomId") as string;
 
@@ -320,10 +355,17 @@ export default function Lobby() {
   };
 
   const handleCloseRoom = (roomId: string) => {
-    const formData = new FormData();
-    formData.append("intent", "close-room");
-    formData.append("roomId", roomId);
-    submit(formData, { method: "post" });
+    submit(
+      { intent: "close-room", roomId },
+      { method: "post", replace: true }
+    );
+  };
+
+  const handleStartGame = (roomId: string) => {
+    submit(
+      { intent: "start-game", roomId },
+      { method: "post", replace: true }
+    );
   };
 
   const handleLogout = () => {
@@ -392,12 +434,40 @@ export default function Lobby() {
             return (
               <div
                 key={room.id}
-                className={`card ${isPlayer ? "bg-base-200" : "bg-base-100"} shadow-md`}
+                className={`card ${isPlayer ? "bg-base-200" : "bg-base-100"} shadow-md relative`}
               >
                 <div className="card-body">
-                  <h3 className="card-title text-lg">
-                    Room ID: {room.id.substring(0, 8)}...
-                  </h3>
+                  {isPlayer && (
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      {isOwner ? (
+                        <>
+                          <button
+                            onClick={() => handleStartGame(room.id)}
+                            disabled={navigation.state !== "idle" || room.playerCount < 2}
+                            className="btn btn-success btn-sm"
+                            title={room.playerCount < 2 ? "Need at least 2 players" : "Start the game"}
+                          >
+                            Start Game
+                          </button>
+                          <button
+                            onClick={() => handleCloseRoom(room.id)}
+                            disabled={navigation.state !== "idle"}
+                            className="btn btn-error btn-sm"
+                          >
+                            Close
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleLeaveRoom(room.id)}
+                          disabled={navigation.state !== "idle"}
+                          className="btn btn-warning btn-sm"
+                        >
+                          Leave
+                        </button>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="mb-2">
                     <div className="flex items-center mb-2">
@@ -431,8 +501,8 @@ export default function Lobby() {
                     </div>
                   </div>
 
-                  <div className="card-actions justify-end">
-                    {!isPlayer ? (
+                  {!isPlayer && (
+                    <div className="card-actions justify-end">
                       <button
                         onClick={() => handleJoinRoom(room.id)}
                         disabled={
@@ -445,32 +515,8 @@ export default function Lobby() {
                           ? "Already in another room"
                           : "Join Room"}
                       </button>
-                    ) : (
-                      <div className="w-full space-y-2">
-                        <div className="badge badge-lg w-full p-3 badge-neutral">
-                          {isOwner ? "You are the owner" : "Already joined"}
-                        </div>
-
-                        {isOwner ? (
-                          <button
-                            onClick={() => handleCloseRoom(room.id)}
-                            disabled={navigation.state !== "idle"}
-                            className="btn btn-error w-full"
-                          >
-                            Close Room
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleLeaveRoom(room.id)}
-                            disabled={navigation.state !== "idle"}
-                            className="btn btn-warning w-full"
-                          >
-                            Leave Room
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );

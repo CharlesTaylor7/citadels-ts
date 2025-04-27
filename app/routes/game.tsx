@@ -1,55 +1,25 @@
 import { useState, useEffect } from "react";
-import {
-  redirect,
-  useLoaderData,
-  useParams,
-  Link,
-} from "react-router";
+import { redirect, useLoaderData, useParams, Link } from "react-router";
 
 import { db, games, rooms, users } from "@/db.server";
 import { eq } from "drizzle-orm";
 import { validateSessionToken } from "../auth.server";
 
-export async function loader({ request, params }: { request: Request; params: { roomId: string } }) {
+export async function loader({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { roomId: string };
+}) {
   const roomId = params.roomId;
-  
+
   if (!roomId) {
     return redirect("/lobby");
   }
 
-  // Get token from cookie
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const cookies = cookieHeader.split("; ");
-  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
-  const token = sessionCookie ? sessionCookie.split("=")[1] : undefined;
-
-  if (!token) {
-    return redirect("/login");
-  }
-
-  const result = await validateSessionToken(token);
-  
-  if (!result.user) {
-    // Clear the invalid session cookie
-    const headers = new Headers();
-    headers.append(
-      "Set-Cookie",
-      "session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax"
-    );
-    headers.append("Location", "/login");
-
-    return new Response(null, {
-      status: 302,
-      headers,
-    });
-  }
-
   // Get the room
-  const room = await db
-    .select()
-    .from(rooms)
-    .where(eq(rooms.id, roomId))
-    .get();
+  const room = await db.select().from(rooms).where(eq(rooms.id, roomId)).get();
 
   if (!room) {
     return redirect("/lobby?error=Room not found");
@@ -62,16 +32,12 @@ export async function loader({ request, params }: { request: Request; params: { 
   }
 
   // Get the game
-  const game = await db
-    .select()
-    .from(games)
-    .where(eq(games.id, roomId))
-    .get();
+  const game = await db.select().from(games).where(eq(games.id, roomId)).get();
 
   // If game doesn't exist yet, create it
   let gameState = {};
   let gameActions = [];
-  
+
   if (game) {
     try {
       gameState = JSON.parse(game.state);
@@ -122,7 +88,9 @@ export default function Game() {
   return (
     <div className="max-w-4xl mx-auto p-5">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Game Room: {roomId?.substring(0, 8)}...</h1>
+        <h1 className="text-2xl font-bold">
+          Game Room: {roomId?.substring(0, 8)}...
+        </h1>
         <Link to="/lobby" className="px-3 py-2 bg-blue-500 text-white rounded">
           Back to Lobby
         </Link>
@@ -132,16 +100,20 @@ export default function Game() {
         <h2 className="text-xl font-semibold mb-3">Players</h2>
         <div className="grid grid-cols-2 gap-2">
           {players.map((player) => (
-            <div 
-              key={player.id} 
-              className={`p-3 rounded ${player.id === user.id.toString() ? 'bg-green-100 border border-green-300' : 'bg-white border border-gray-300'}`}
+            <div
+              key={player.id}
+              className={`p-3 rounded ${player.id === user.id.toString() ? "bg-green-100 border border-green-300" : "bg-white border border-gray-300"}`}
             >
               <span className="font-medium">{player.username}</span>
               {player.id === room.owner && (
-                <span className="ml-2 text-xs bg-yellow-200 px-1 py-0.5 rounded">Owner</span>
+                <span className="ml-2 text-xs bg-yellow-200 px-1 py-0.5 rounded">
+                  Owner
+                </span>
               )}
               {player.id === user.id.toString() && (
-                <span className="ml-2 text-xs bg-blue-200 px-1 py-0.5 rounded">You</span>
+                <span className="ml-2 text-xs bg-blue-200 px-1 py-0.5 rounded">
+                  You
+                </span>
               )}
             </div>
           ))}
@@ -151,7 +123,9 @@ export default function Game() {
       {!game.exists ? (
         <div className="text-center p-8 bg-yellow-50 rounded border border-yellow-200">
           <h2 className="text-xl font-semibold mb-3">Game Not Started</h2>
-          <p className="mb-4">The game for this room hasn't been started yet.</p>
+          <p className="mb-4">
+            The game for this room hasn't been started yet.
+          </p>
           {room.owner === user.id.toString() && (
             <button className="px-4 py-2 bg-green-500 text-white rounded">
               Start Game
@@ -161,7 +135,7 @@ export default function Game() {
       ) : (
         <div className="bg-white border border-gray-300 rounded p-4">
           <h2 className="text-xl font-semibold mb-4">Game In Progress</h2>
-          
+
           {/* Game board would go here */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="p-4 bg-gray-100 rounded">
@@ -176,7 +150,7 @@ export default function Game() {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-4 bg-gray-100 rounded">
               <h3 className="font-medium mb-2">Characters</h3>
               <div className="flex flex-wrap gap-2">
@@ -186,14 +160,14 @@ export default function Game() {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-4 bg-gray-100 rounded">
               <h3 className="font-medium mb-2">Game Info</h3>
               <p>Current Turn: Player 1</p>
               <p>Phase: Character Selection</p>
             </div>
           </div>
-          
+
           <div className="p-4 bg-gray-100 rounded">
             <h3 className="font-medium mb-2">Game Log</h3>
             <div className="h-40 overflow-y-auto bg-white p-2 border border-gray-200 rounded">
