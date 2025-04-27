@@ -1,404 +1,161 @@
 import { useState, useEffect } from "react";
-import {
-  redirect,
-  Form,
-  Link,
-  useLoaderData,
-  useNavigation,
-  useSubmit,
-} from "react-router";
-import { db, rooms, users, room_members, games } from "@/server/db.server";
-import { and, eq } from "drizzle-orm";
+import { redirect, Link, useLoaderData, useNavigate } from "react-router";
 import { getSession } from "@/server/auth.server";
-import { randomUUID } from "node:crypto";
-import { GameConfigUtils, LobbyUtils } from "@/game/lobby";
-import { Game } from "@/game/game";
-import { config } from "node:process";
+import { trpc } from "@/trpc.client";
+import { toast } from "react-hot-toast";
 
 export async function loader({ request }: { request: Request }) {
-  const result = await getSession(request);
+  const session = await getSession(request);
 
-  if (!result) {
+  if (!session) {
     return redirect("/login");
   }
 
-  // Get available rooms
-  const allRooms = await db.select().from(rooms).all();
-
-  // Find the room the user is currently in, if any
-  const userRoomMembership = await db
-    .select()
-    .from(room_members)
-    .where(eq(room_members.player_id, result.user.id.toString()))
-    .get();
-
-  const userRoom = userRoomMembership
-    ? allRooms.find((room) => room.id === userRoomMembership.room_id)
-    : null;
-
-  // Fetch owner usernames for each room
-  const roomsWithOwners = await Promise.all(
-    allRooms.map(async (room) => {
-      const owner = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, Number(room.owner_id)))
-        .get();
-
-      // Get all players in this room from room_members table
-      const roomMembers = await db
-        .select()
-        .from(room_members)
-        .where(eq(room_members.room_id, room.id))
-        .all();
-
-      const playerIds = roomMembers.map((member) => member.player_id);
-
-      // Get player usernames
-      const players = await Promise.all(
-        playerIds.map(async (id) => {
-          const player = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, Number(id)))
-            .get();
-          return player ? player.username : "Unknown";
-        })
-      );
-
-      // Check if a game exists for this room
-      const game = await db
-        .select()
-        .from(games)
-        .where(eq(games.id, room.id))
-        .get();
-
-      return {
-        ...room,
-        ownerUsername: owner ? owner.username : "Unknown",
-        playerUsernames: players,
-        playerCount: playerIds.length,
-        gameStarted: !!game,
-      };
-    })
-  );
+  // Use server-side tRPC calls to get data
+  const rooms = await trpc.lobby.getRooms.query();
+  const userRoom = await trpc.lobby.getUserRoom.query({
+    userId: session.user.id,
+  });
 
   return {
-    user: result.user,
-    rooms: roomsWithOwners,
-    userRoom: userRoom ? userRoom.id : null,
+    user: session.user,
+    rooms,
+    userRoom,
   };
-}
-
-export async function action({ request }: { request: Request }) {
-  const formData = await request.formData();
-  const intent = formData.get("intent") as string;
-  const result = await getSession(request);
-
-  if (!result) {
-    return redirect("/login");
-  }
-
-  const userId = result.user.id;
-
-  if (intent === "create-room") {
-    try {
-      // Check if user is already in any room
-      const userRoomMembership = await db
-        .select()
-        .from(room_members)
-        .where(eq(room_members.player_id, userId.toString()))
-        .get();
-
-      // If user is already in a room, return error
-      if (userRoomMembership) {
-        return {
-          success: false,
-          error:
-            "You are already in a room. Leave that room first before creating a new one.",
-        };
-      }
-
-      // Generate a random room ID
-      const roomId = randomUUID();
-
-      // Create the room
-      await db.insert(rooms).values({
-        id: roomId,
-        owner_id: userId.toString(),
-        options: "{}",
-      });
-
-      // Add the owner as a room member
-      await db.insert(room_members).values({
-        player_id: userId.toString(),
-        room_id: roomId,
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error creating room:", error);
-      return { success: false, error: "Failed to create room" };
-    }
-  } else if (intent === "leave-room") {
-    const roomId = formData.get("roomId") as string;
-
-    try {
-      // Get the room
-      const room = await db
-        .select()
-        .from(rooms)
-        .where(eq(rooms.id, roomId))
-        .get();
-
-      if (!room) {
-        return { success: false, error: "Room not found" };
-      }
-
-      // Check if user is the owner
-      if (room.owner_id === userId.toString()) {
-        return {
-          success: false,
-          error: "Room owner cannot leave. Please close the room instead.",
-        };
-      }
-
-      // Remove the user from the room_members table
-      await db
-        .delete(room_members)
-        .where(eq(room_members.player_id, userId.toString()))
-        .run();
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error leaving room:", error);
-      return { success: false, error: "Failed to leave room" };
-    }
-  } else if (intent === "start-game") {
-    const roomId = formData.get("roomId") as string;
-
-    // Check if room exists
-    const room = await db
-      .select()
-      .from(rooms)
-      .where(eq(rooms.id, roomId))
-      .get();
-
-    if (!room) {
-      return { success: false, error: "Room not found" };
-    }
-
-    // Check if user is the owner
-    if (room.owner_id !== userId.toString()) {
-      return {
-        success: false,
-        error: "Only the room owner can start the game",
-      };
-    }
-
-    // Check if there are enough players (at least 2)
-    const roomMembers = await db
-      .select({ id: room_members.player_id, name: users.username })
-      .from(room_members)
-      .innerJoin(users, eq(room_members.player_id, users.id))
-      .where(eq(room_members.room_id, roomId))
-      .all();
-
-    if (roomMembers.length < 2) {
-      return {
-        success: false,
-        error: "At least 2 players are required to start the game",
-      };
-    }
-
-    // Create initial game state
-    const initialState = new Game({
-      players: roomMembers,
-      config: GameConfigUtils.default(),
-    });
-
-    // Create a new game record
-    await db.insert(games).values({
-      id: roomId,
-      state: JSON.stringify(initialState),
-      actions: JSON.stringify([
-        {
-          type: "GAME_CREATED",
-          timestamp: Date.now(),
-          playerId: userId.toString(),
-        },
-      ]),
-    });
-
-    // Redirect to the game page
-    return redirect(`/game/${roomId}`);
-  } else if (intent === "close-room") {
-    const roomId = formData.get("roomId") as string;
-
-    try {
-      // Get the room
-      const room = await db
-        .select()
-        .from(rooms)
-        .where(eq(rooms.id, roomId))
-        .get();
-
-      if (!room) {
-        return { success: false, error: "Room not found" };
-      }
-
-      // Check if user is the owner
-      if (room.owner_id !== userId.toString()) {
-        return {
-          success: false,
-          error: "Only the room owner can close a room",
-        };
-      }
-
-      // Delete all room members first
-      await db
-        .delete(room_members)
-        .where(eq(room_members.room_id, roomId))
-        .run();
-
-      // Then delete the room
-      await db.delete(rooms).where(eq(rooms.id, roomId)).run();
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error closing room:", error);
-      return { success: false, error: "Failed to close room" };
-    }
-  } else if (intent === "join-room") {
-    const roomId = formData.get("roomId") as string;
-
-    try {
-      // Check if user is already in any room
-      const userRoomMembership = await db
-        .select()
-        .from(room_members)
-        .where(eq(room_members.player_id, userId.toString()))
-        .get();
-
-      // If user is already in a different room, return error
-      if (userRoomMembership && userRoomMembership.room_id !== roomId) {
-        return {
-          success: false,
-          error:
-            "You are already in another room. Leave that room first before joining a new one.",
-        };
-      }
-
-      // Get the room
-      const room = await db
-        .select()
-        .from(rooms)
-        .where(eq(rooms.id, roomId))
-        .get();
-
-      if (!room) {
-        return { success: false, error: "Room not found" };
-      }
-
-      // Check if user is already in this room
-      const isAlreadyInRoom = await db
-        .select()
-        .from(room_members)
-        .where(
-          and(
-            eq(room_members.player_id, userId.toString()),
-            eq(room_members.room_id, roomId)
-          )
-        )
-        .get();
-
-      if (isAlreadyInRoom) {
-        return { success: false, error: "You are already in this room" };
-      }
-
-      // Add user to the room_members table
-      await db
-        .insert(room_members)
-        .values({
-          player_id: userId.toString(),
-          room_id: roomId,
-        })
-        .run();
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error joining room:", error);
-      return { success: false, error: "Failed to join room" };
-    }
-  } else if (intent === "logout") {
-    // Clear the session cookie
-    const headers = new Headers();
-    headers.append(
-      "Set-Cookie",
-      "session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax"
-    );
-    headers.append("Location", "/login");
-
-    return new Response(null, {
-      status: 302,
-      headers,
-    });
-  }
-
-  return { success: false, error: "Invalid action" };
 }
 
 export default function Lobby() {
-  const { user, rooms, userRoom } = useLoaderData<{
+  const {
+    user,
+    rooms,
+    userRoom,
+    error: loaderError,
+  } = useLoaderData<{
     user: { id: number; username: string };
     rooms: Array<any>;
     userRoom: string | null;
+    error?: string;
   }>();
-  const navigation = useNavigation();
-  const submit = useSubmit();
-  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(loaderError || null);
 
-  const handleCreateRoom = () => {
-    setIsCreatingRoom(true);
-    const formData = new FormData();
-    formData.append("intent", "create-room");
-    submit(formData, { method: "post" });
+  // Display error message if present
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      setError(null);
+    }
+  }, [error]);
+
+  const handleCreateRoom = async () => {
+    setIsLoading(true);
+    try {
+      const result = await trpc.lobby.createRoom.mutate({ userId: user.id });
+      if (!result.success) {
+        setError(result.error || "Failed to create room");
+      } else {
+        // Refresh the page to show the new room
+        window.location.reload();
+      }
+    } catch (err) {
+      setError("Error creating room");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleJoinRoom = (roomId: string) => {
-    const formData = new FormData();
-    formData.append("intent", "join-room");
-    formData.append("roomId", roomId);
-    submit(formData, { method: "post" });
+  const handleJoinRoom = async (roomId: string) => {
+    setIsLoading(true);
+    try {
+      const result = await trpc.lobby.joinRoom.mutate({
+        userId: user.id,
+        roomId,
+      });
+      if (!result.success) {
+        setError(result.error || "Failed to join room");
+      } else {
+        // Refresh the page to show updated room status
+        window.location.reload();
+      }
+    } catch (err) {
+      setError("Error joining room");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleLeaveRoom = (roomId: string) => {
-    const formData = new FormData();
-    formData.append("intent", "leave-room");
-    formData.append("roomId", roomId);
-    submit(formData, { method: "post" });
+  const handleLeaveRoom = async (roomId: string) => {
+    setIsLoading(true);
+    try {
+      const result = await trpc.lobby.leaveRoom.mutate({
+        userId: user.id,
+        roomId,
+      });
+      if (!result.success) {
+        setError(result.error || "Failed to leave room");
+      } else {
+        // Refresh the page to show updated room status
+        window.location.reload();
+      }
+    } catch (err) {
+      setError("Error leaving room");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCloseRoom = (roomId: string) => {
-    submit({ intent: "close-room", roomId }, { method: "post", replace: true });
+  const handleCloseRoom = async (roomId: string) => {
+    setIsLoading(true);
+    try {
+      const result = await trpc.lobby.closeRoom.mutate({
+        userId: user.id,
+        roomId,
+      });
+      if (!result.success) {
+        setError(result.error || "Failed to close room");
+      } else {
+        // Refresh the page to show updated room list
+        window.location.reload();
+      }
+    } catch (err) {
+      setError("Error closing room");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleStartGame = (roomId: string) => {
-    submit({ intent: "start-game", roomId }, { method: "post", replace: true });
+  const handleStartGame = async (roomId: string) => {
+    setIsLoading(true);
+    try {
+      const result = await trpc.lobby.startGame.mutate({
+        userId: user.id,
+        roomId,
+      });
+      if (!result.success) {
+        setError(result.error || "Failed to start game");
+      } else {
+        // Navigate to the game page
+        navigate(`/game/${result.gameId}`);
+      }
+    } catch (err) {
+      setError("Error starting game");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogout = () => {
-    const formData = new FormData();
-    formData.append("intent", "logout");
-    submit(formData, { method: "post" });
+    // Clear the session cookie
+    document.cookie = "session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
+    // Redirect to login page
+    navigate("/login");
   };
-
-  // Reset creating state when navigation completes
-  useEffect(() => {
-    if (navigation.state === "idle" && isCreatingRoom) {
-      setIsCreatingRoom(false);
-    }
-  }, [navigation.state, isCreatingRoom]);
 
   return (
     <div className="container mx-auto p-4">
@@ -417,16 +174,10 @@ export default function Lobby() {
       <div className="mb-6">
         <button
           onClick={handleCreateRoom}
-          disabled={
-            isCreatingRoom || navigation.state !== "idle" || userRoom !== null
-          }
-          className={`btn ${userRoom !== null ? "btn-disabled" : "btn-primary"}`}
+          disabled={isLoading || userRoom !== null}
+          className="btn btn-primary"
         >
-          {userRoom !== null
-            ? "Already in a room"
-            : isCreatingRoom
-              ? "Creating..."
-              : "Create New Room"}
+          {isLoading ? "Creating..." : "Create Room"}
         </button>
       </div>
 
@@ -478,10 +229,7 @@ export default function Lobby() {
                         <>
                           <button
                             onClick={() => handleStartGame(room.id)}
-                            disabled={
-                              navigation.state !== "idle" ||
-                              room.playerCount < 2
-                            }
+                            disabled={isLoading || room.playerCount < 2}
                             className="btn btn-success btn-sm"
                             title={
                               room.playerCount < 2
@@ -493,7 +241,7 @@ export default function Lobby() {
                           </button>
                           <button
                             onClick={() => handleCloseRoom(room.id)}
-                            disabled={navigation.state !== "idle"}
+                            disabled={isLoading}
                             className="btn btn-error btn-sm"
                           >
                             Close
@@ -502,7 +250,7 @@ export default function Lobby() {
                       ) : (
                         <button
                           onClick={() => handleLeaveRoom(room.id)}
-                          disabled={navigation.state !== "idle"}
+                          disabled={isLoading}
                           className="btn btn-warning btn-sm"
                         >
                           Leave
@@ -555,7 +303,7 @@ export default function Lobby() {
                         <button
                           onClick={() => handleJoinRoom(room.id)}
                           disabled={
-                            navigation.state !== "idle" ||
+                            isLoading ||
                             (userRoom !== null && userRoom !== room.id)
                           }
                           className={`btn ${userRoom !== null && userRoom !== room.id ? "btn-disabled" : "btn-primary"} w-full`}

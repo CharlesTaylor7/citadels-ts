@@ -5,7 +5,7 @@ import {
 import { reactRouterFastify } from "@mcansh/remix-fastify/react-router";
 import fastify from "fastify";
 import { createContext } from "./context.server";
-import { appRouter, type AppRouter } from "./router.server";
+import { appRouter, type AppRouter } from "@/server/trpc/router";
 const server = fastify({
   maxParamLength: 5000,
 });
