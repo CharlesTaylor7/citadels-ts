@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import { redirect } from 'react-router'
-import { validateSessionToken } from '@/services/auth-service';
+import { validateSessionToken } from '@/auth.server';
 
 export function meta({}: Route.MetaArgs) {
   return [

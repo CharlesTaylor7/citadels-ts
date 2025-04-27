@@ -1,3 +1,13 @@
+import { drizzle } from "drizzle-orm/libsql/node";
+import { createClient } from "@libsql/client";
+
+// Create a client with the correct URL format
+const client = createClient({
+  url: "file:./volume/sqlite.db",
+});
+
+export const db = drizzle(client);
+
 import { sqliteTable as table, text, integer } from "drizzle-orm/sqlite-core";
 import type { InferSelectModel } from "drizzle-orm";
 

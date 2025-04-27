@@ -1,0 +1,17 @@
+Please focus on the current prompt.
+I am writing out specifications in Features.md, but don't start working on them until I say so.
+
+Please do not edit these folders/files:
+- .windsurfrules
+- README.md
+- FEATURES.md
+- package.json
+- tsconfig.json
+- vite.config.ts
+- yarn.lock
+- .yarnrc.yml
+- .gitignore
+- .jj/
+- .git/
+- drizzle.config.ts
+

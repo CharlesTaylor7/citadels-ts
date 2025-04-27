@@ -1,12 +1,12 @@
 // https://lucia-auth.com/sessions/basic-api/drizzle-orm
-import { users, sessions, Session, User } from "../db/schema";
+import { users, sessions, Session, User } from "@/db.server";
 import crypto from "node:crypto";
 import {
   encodeHexLowerCase,
   encodeBase32LowerCaseNoPadding,
 } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
-import { db } from "../db";
+import { db } from "./db.server";
 import { eq } from "drizzle-orm";
 import { hash, verify } from "@node-rs/argon2";
 import { sha1 } from "@oslojs/crypto/sha1";

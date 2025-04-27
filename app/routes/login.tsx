@@ -6,8 +6,7 @@ import {
   useActionData,
   useNavigation,
 } from "react-router";
-import { db } from "../db";
-import { users } from "../db/schema";
+import { users, db } from "@/db.server";
 import { eq } from "drizzle-orm";
 import {
   generateSessionToken,
@@ -15,7 +14,7 @@ import {
   validateSessionToken,
   verifyPasswordHash,
   verifyPasswordStrength,
-} from "../services/auth-service";
+} from "../auth.server";
 
 export async function loader({ request }: { request: Request }) {
   // Get token from cookie
@@ -97,42 +96,29 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   return (
-    <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
-      <h1>Login to Citadels</h1>
+    <div className="max-w-md mx-auto p-5">
+      <h1 className="text-2xl font-bold mb-4">Login to Citadels</h1>
 
       {actionData?.error && (
-        <div style={{ color: "red", marginBottom: "10px" }}>
-          {actionData.error}
-        </div>
+        <div className="text-red-500 mb-3">{actionData.error}</div>
       )}
 
       <Form method="post">
-        <div style={{ marginBottom: "15px" }}>
-          <label
-            htmlFor="username"
-            style={{ display: "block", marginBottom: "5px" }}
-          >
+        <div className="mb-4">
+          <label htmlFor="username" className="block mb-1">
             Username
           </label>
           <input
             id="username"
             name="username"
             type="text"
-            style={{
-              width: "100%",
-              padding: "8px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-            }}
+            className="w-full p-2 border border-gray-300 rounded"
             required
           />
         </div>
 
-        <div style={{ marginBottom: "15px" }}>
-          <label
-            htmlFor="password"
-            style={{ display: "block", marginBottom: "5px" }}
-          >
+        <div className="mb-4">
+          <label htmlFor="password" className="block mb-1">
             Password
           </label>
           <input
@@ -141,12 +127,7 @@ export default function Login() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-            }}
+            className="w-full p-2 border border-gray-300 rounded"
             required
           />
         </div>
@@ -154,25 +135,16 @@ export default function Login() {
         <button
           type="submit"
           disabled={isSubmitting}
-          style={{
-            width: "100%",
-            padding: "10px",
-            backgroundColor: "#4CAF50",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isSubmitting ? "not-allowed" : "pointer",
-            opacity: isSubmitting ? 0.7 : 1,
-          }}
+          className={`w-full py-2.5 bg-green-500 text-white rounded ${isSubmitting ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
         >
           {isSubmitting ? "Logging in..." : "Login"}
         </button>
       </Form>
 
-      <div style={{ marginTop: "15px", textAlign: "center" }}>
+      <div className="mt-4 text-center">
         <p>
           Don't have an account?{" "}
-          <Link to="/signup" style={{ color: "#4CAF50" }}>
+          <Link to="/signup" className="text-green-500">
             Sign Up
           </Link>
         </p>

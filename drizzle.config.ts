@@ -3,7 +3,7 @@ import { resolve } from "path";
 
 export default defineConfig({
   dialect: "sqlite",
-  schema: "./app/db/schema.ts",
+  schema: "./app/db.server.ts",
   dbCredentials: {
     url: "file:./volume/sqlite.db",
   },

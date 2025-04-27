@@ -6,10 +6,9 @@ import {
   useNavigation,
   useSubmit,
 } from "react-router";
-import { db } from "../db";
-import { rooms, users } from "../db/schema";
+import { db, rooms, users } from "@/db.server";
 import { eq } from "drizzle-orm";
-import { validateSessionToken } from "../services/auth-service";
+import { validateSessionToken } from "../auth.server";
 import crypto from "node:crypto";
 
 export async function loader({ request }: { request: Request }) {
@@ -42,6 +41,11 @@ export async function loader({ request }: { request: Request }) {
 
   // Get available rooms
   const allRooms = await db.select().from(rooms).all();
+
+  // Find the room the user is currently in, if any
+  const userRoom = allRooms.find((room) =>
+    room.players.split(",").includes(result.user.id.toString())
+  );
 
   // Fetch owner usernames for each room
   const roomsWithOwners = await Promise.all(
@@ -81,6 +85,7 @@ export async function loader({ request }: { request: Request }) {
   return {
     user: result.user,
     rooms: roomsWithOwners,
+    userRoom: userRoom ? userRoom.id : null,
   };
 }
 
@@ -108,6 +113,21 @@ export async function action({ request }: { request: Request }) {
 
   if (intent === "create-room") {
     try {
+      // Check if user is already in any room
+      const allRooms = await db.select().from(rooms).all();
+      const userRooms = allRooms.filter((r) =>
+        r.players.split(",").includes(userId.toString())
+      );
+
+      // If user is already in a room, return error
+      if (userRooms.length > 0) {
+        return {
+          success: false,
+          error:
+            "You are already in a room. Leave that room first before creating a new one.",
+        };
+      }
+
       // Generate a random room ID
       const roomId = crypto.randomUUID();
 
@@ -124,10 +144,97 @@ export async function action({ request }: { request: Request }) {
       console.error("Error creating room:", error);
       return { success: false, error: "Failed to create room" };
     }
+  } else if (intent === "leave-room") {
+    const roomId = formData.get("roomId") as string;
+
+    try {
+      // Get the room
+      const room = await db
+        .select()
+        .from(rooms)
+        .where(eq(rooms.id, roomId))
+        .get();
+
+      if (!room) {
+        return { success: false, error: "Room not found" };
+      }
+
+      // Check if user is the owner
+      if (room.owner === userId.toString()) {
+        return {
+          success: false,
+          error: "Room owner cannot leave. Please close the room instead.",
+        };
+      }
+
+      // Parse the players list
+      const playerIds = room.players
+        .split(",")
+        .filter((id) => id !== userId.toString());
+
+      // Update the room with the user removed
+      await db
+        .update(rooms)
+        .set({
+          players: playerIds.join(","),
+        })
+        .where(eq(rooms.id, roomId));
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error leaving room:", error);
+      return { success: false, error: "Failed to leave room" };
+    }
+  } else if (intent === "close-room") {
+    const roomId = formData.get("roomId") as string;
+
+    try {
+      // Get the room
+      const room = await db
+        .select()
+        .from(rooms)
+        .where(eq(rooms.id, roomId))
+        .get();
+
+      if (!room) {
+        return { success: false, error: "Room not found" };
+      }
+
+      // Check if user is the owner
+      if (room.owner !== userId.toString()) {
+        return {
+          success: false,
+          error: "Only the room owner can close a room",
+        };
+      }
+
+      // Delete the room
+      await db.delete(rooms).where(eq(rooms.id, roomId));
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error closing room:", error);
+      return { success: false, error: "Failed to close room" };
+    }
   } else if (intent === "join-room") {
     const roomId = formData.get("roomId") as string;
 
     try {
+      // Check if user is already in any room
+      const allRooms = await db.select().from(rooms).all();
+      const userRooms = allRooms.filter((r) =>
+        r.players.split(",").includes(userId.toString())
+      );
+
+      // If user is already in a different room, return error
+      if (userRooms.length > 0 && !userRooms.some((r) => r.id === roomId)) {
+        return {
+          success: false,
+          error:
+            "You are already in another room. Leave that room first before joining a new one.",
+        };
+      }
+
       // Get the room
       const room = await db
         .select()
@@ -182,9 +289,10 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function Lobby() {
-  const { user, rooms } = useLoaderData<{
+  const { user, rooms, userRoom } = useLoaderData<{
     user: { id: number; username: string };
     rooms: Array<any>;
+    userRoom: string | null;
   }>();
   const navigation = useNavigation();
   const submit = useSubmit();
@@ -204,6 +312,20 @@ export default function Lobby() {
     submit(formData, { method: "post" });
   };
 
+  const handleLeaveRoom = (roomId: string) => {
+    const formData = new FormData();
+    formData.append("intent", "leave-room");
+    formData.append("roomId", roomId);
+    submit(formData, { method: "post" });
+  };
+
+  const handleCloseRoom = (roomId: string) => {
+    const formData = new FormData();
+    formData.append("intent", "close-room");
+    formData.append("roomId", roomId);
+    submit(formData, { method: "post" });
+  };
+
   const handleLogout = () => {
     const formData = new FormData();
     formData.append("intent", "logout");
@@ -218,67 +340,44 @@ export default function Lobby() {
   }, [navigation.state, isCreatingRoom]);
 
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
-        }}
-      >
-        <h1>Game Lobby</h1>
+    <div className="max-w-3xl mx-auto p-5">
+      <div className="flex justify-between items-center mb-5">
+        <h1 className="text-2xl font-bold">Game Lobby</h1>
         <div>
-          <span style={{ marginRight: "10px" }}>Welcome, {user.username}!</span>
+          <span className="mr-3">Welcome, {user.username}!</span>
           <button
             onClick={handleLogout}
-            style={{
-              padding: "8px 12px",
-              backgroundColor: "#f44336",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            className="px-3 py-2 bg-red-500 text-white rounded cursor-pointer"
           >
             Logout
           </button>
         </div>
       </div>
 
-      <div style={{ marginBottom: "20px" }}>
+      <div className="mb-5">
         <button
           onClick={handleCreateRoom}
-          disabled={isCreatingRoom || navigation.state !== "idle"}
-          style={{
-            padding: "10px 15px",
-            backgroundColor: "#4CAF50",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor:
-              isCreatingRoom || navigation.state !== "idle"
-                ? "not-allowed"
-                : "pointer",
-            opacity: isCreatingRoom || navigation.state !== "idle" ? 0.7 : 1,
-          }}
+          disabled={
+            isCreatingRoom || navigation.state !== "idle" || userRoom !== null
+          }
+          className={`px-4 py-2.5 bg-green-500 text-white rounded ${isCreatingRoom || navigation.state !== "idle" || userRoom !== null ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
         >
-          {isCreatingRoom ? "Creating..." : "Create New Room"}
+          {userRoom !== null
+            ? "Already in a room"
+            : isCreatingRoom
+              ? "Creating..."
+              : "Create New Room"}
         </button>
       </div>
 
-      <h2>Available Rooms</h2>
+      <h2 className="text-xl font-semibold mb-3">Available Rooms</h2>
 
       {rooms.length === 0 ? (
-        <p>No rooms available. Create one to get started!</p>
+        <p className="text-gray-600">
+          No rooms available. Create one to get started!
+        </p>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "15px",
-          }}
-        >
+        <div className="grid grid-cols-2 gap-4">
           {rooms.map((room) => {
             const isOwner = room.owner === user.id.toString();
             const isPlayer = room.players
@@ -288,57 +387,84 @@ export default function Lobby() {
             return (
               <div
                 key={room.id}
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  padding: "15px",
-                  backgroundColor: isPlayer ? "#e8f5e9" : "white",
-                }}
+                className={`border border-gray-300 rounded p-4 ${isPlayer ? "bg-green-50" : "bg-white"}`}
               >
-                <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
+                <div className="mb-2.5 font-bold">
                   Room ID: {room.id.substring(0, 8)}...
                 </div>
-                <div style={{ marginBottom: "5px" }}>
-                  Owner: {room.ownerUsername}
-                </div>
-                <div style={{ marginBottom: "5px" }}>
-                  Players: {room.playerCount}
-                </div>
-                <div style={{ marginBottom: "10px" }}>
-                  {room.playerUsernames.join(", ")}
+                <div className="mb-3">
+                  <div className="flex items-center mb-1">
+                    <span className="font-medium mr-2">Owner:</span>
+                    <span className="bg-yellow-100 px-2 py-0.5 rounded text-sm">
+                      {room.ownerUsername}
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <div className="font-medium mb-1">
+                      Players ({room.playerCount}):
+                    </div>
+                    <ul className="bg-gray-50 rounded border border-gray-200 p-2 max-h-24 overflow-y-auto">
+                      {room.playerUsernames.map((username, index) => (
+                        <li key={index} className="flex items-center py-0.5">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                          <span
+                            className={
+                              username === user.username ? "font-medium" : ""
+                            }
+                          >
+                            {username} {username === user.username && "(You)"}
+                          </span>
+                          {username === room.ownerUsername && (
+                            <span className="ml-2 text-xs bg-yellow-200 px-1 py-0.5 rounded">
+                              Owner
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
                 {!isPlayer ? (
                   <button
                     onClick={() => handleJoinRoom(room.id)}
-                    disabled={navigation.state !== "idle"}
-                    style={{
-                      padding: "8px 12px",
-                      backgroundColor: "#2196F3",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor:
-                        navigation.state !== "idle" ? "not-allowed" : "pointer",
-                      width: "100%",
-                    }}
+                    disabled={
+                      navigation.state !== "idle" ||
+                      (userRoom !== null && userRoom !== room.id)
+                    }
+                    className={`w-full px-3 py-2 bg-blue-500 text-white rounded ${navigation.state !== "idle" || (userRoom !== null && userRoom !== room.id) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                   >
-                    Join Room
+                    {userRoom !== null && userRoom !== room.id
+                      ? "Already in another room"
+                      : "Join Room"}
                   </button>
                 ) : (
-                  <button
-                    style={{
-                      padding: "8px 12px",
-                      backgroundColor: "#9E9E9E",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      width: "100%",
-                    }}
-                    disabled
-                  >
-                    {isOwner ? "You are the owner" : "Already joined"}
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      className="w-full px-3 py-2 bg-gray-500 text-white rounded"
+                      disabled
+                    >
+                      {isOwner ? "You are the owner" : "Already joined"}
+                    </button>
+
+                    {isOwner ? (
+                      <button
+                        onClick={() => handleCloseRoom(room.id)}
+                        disabled={navigation.state !== "idle"}
+                        className={`w-full px-3 py-2 bg-red-500 text-white rounded ${navigation.state !== "idle" ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        Close Room
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleLeaveRoom(room.id)}
+                        disabled={navigation.state !== "idle"}
+                        className={`w-full px-3 py-2 bg-yellow-500 text-white rounded ${navigation.state !== "idle" ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        Leave Room
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );
