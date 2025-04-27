@@ -13,8 +13,10 @@
   "license": "ISC",
   "packageManager": "yarn@4.9.1",
   "dependencies": {
+    "@libsql/client": "^0.15.4",
     "@tanstack/react-router": "^1.117.1",
     "@tanstack/react-start": "^1.118.0",
+    "drizzle-orm": "^0.43.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "vinxi": "^0.5.4"
@@ -23,6 +25,7 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
+    "drizzle-kit": "^0.31.0",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "vite-tsconfig-paths": "^5.1.4"

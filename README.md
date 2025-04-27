@@ -1,4 +1,4 @@
 ## Tech stack
 typescript
 react
-tanstack start
+[tanstack/react-start](https://tanstack.com/start/latest/docs/framework/react/overview)
