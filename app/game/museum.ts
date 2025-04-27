@@ -1,9 +1,5 @@
-/**
- * Museum class for the Citadels game
- * Manages district cards and their associated artifacts
- */
-export type DistrictName = string;
-
+ import {shuffle} from '@/game/random'; 
+import { DistrictName } from './types';
 export class Museum {
   private cards: DistrictName[] = [];
   private artifacts: string[] = [];
@@ -14,9 +10,6 @@ export class Museum {
     "💎", "🪩", "🔱", "🧋",
   ];
 
-  constructor() {
-    // Initialize with empty collections
-  }
 
   /**
    * Get the artifacts currently assigned to cards in the museum
@@ -42,7 +35,7 @@ export class Museum {
       const newArtifacts = [...Museum.ARTIFACTS];
       
       // Shuffle the artifacts (Fisher-Yates algorithm)
-      shuffleArray(newArtifacts);
+      shuffle(newArtifacts, () => Math.random());
       
       // Add the shuffled artifacts to our collection
       this.artifacts = this.artifacts.concat(newArtifacts);
@@ -52,18 +45,8 @@ export class Museum {
   /**
    * Get all cards in the museum
    */
-  public getCards(): DistrictName[] {
-    return [...this.cards];
+  public getCards(): ReadonlyArray<DistrictName> {
+    return this.cards;
   }
 }
 
-  /**
-   * Helper method to shuffle an array in-place
-   * Implementation of Fisher-Yates shuffle algorithm
-   */
-  function shuffleArray(array: string[]): void {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-  }

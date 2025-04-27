@@ -17,3 +17,16 @@ Please do not edit these folders/files:
 
 In the reference folder, there is a rust implementation of the game. 
 I need help porting the logic over to typescript.
+These are the core roles:
+- Assassin
+- Thief
+- Magician
+- King
+- Bishop
+- Merchant
+- Architect
+- Warlord
+
+
+
+The rust code uses Result types. For the typescript don't wrap the return values in Result types. Just either return the value directly or throw an error.

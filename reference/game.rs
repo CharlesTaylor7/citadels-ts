@@ -1,32 +1,11 @@
-use crate::actions::{
-    Action, ActionTag, BuildMethod, CityDistrictTarget, MagicianAction, Resource, WizardMethod,
-};
-use crate::districts::DistrictName;
-use crate::game_actions::perform_action;
-use crate::lobby::{self, Lobby};
-use crate::museum::Museum;
-use crate::random::Prng;
-use crate::roles::{Rank, RoleName};
-use crate::types::{CardSuit, Marker, PlayerId, PlayerName};
-use macros::tag::Tag;
-use rand::prelude::*;
-use std::borrow::{Borrow, BorrowMut, Cow};
-use std::fmt::Debug;
-use std::iter::repeat;
-
-#[derive(Debug)]
 pub enum ForcedToGatherReason {
     Witch,
     Bewitched,
     Blackmailed,
 }
 
-pub type Result<T> = std::result::Result<T, Cow<'static, str>>;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct PlayerIndex(pub usize);
 
-#[derive(Debug)]
 pub struct Player {
     pub index: PlayerIndex,
     pub id: PlayerId,
@@ -1232,29 +1211,6 @@ impl Game {
     }
 
     pub fn end_round(&mut self) {
-        // triggered actions
-        // Redo: queen action
-        // If the queen has not already done their queen action, they get gold at end of round for
-        // being adjacent to royalty
-        //
-        //let queen = self.characters.get(RoleName::Queen);
-        //let n = self.players.len();
-        //let p2 = index;
-        //if self. queen.is_some_and(|q| {
-        //    q.player
-        //        .is_some_and(|p1| ((p1.0 + 1) % n == p2.0 || (p2.0 + 1) % n == p1.0))
-        //}) {
-        //    self.players[queen.unwrap().player.unwrap().0].gold += 3;
-        //    self.logs.push(
-        //        format!(
-        //            "The Queen ({}) was seated next to royalty ({}); they gain 3 gold.",
-        //            self.players[queen.unwrap().player.unwrap().0].name,
-        //            royalty.unwrap().role.display_name()
-        //        )
-        //        .into(),
-        //    );
-        //}
-
         let heir = self.characters.0.iter().find(|c| {
             c.markers.iter().any(|m| *m == Marker::Killed)
                 && (c.role == RoleName::King || c.role == RoleName::Patrician)
@@ -1290,23 +1246,5 @@ impl Game {
         for player in self.players.iter_mut() {
             player.cleanup_round();
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::game::*;
-
-    #[test]
-    fn test_deck() {
-        let mut deck: Deck<usize> = Deck::new(vec![3, 2, 1]);
-        assert_eq!(deck.draw(), Some(1));
-        deck.discard_to_bottom(4);
-        deck.discard_to_bottom(5);
-        assert_eq!(deck.draw(), Some(2));
-        assert_eq!(deck.draw(), Some(3));
-        assert_eq!(deck.draw(), Some(4));
-        assert_eq!(deck.draw(), Some(5));
-        assert_eq!(deck.draw(), None);
     }
 }

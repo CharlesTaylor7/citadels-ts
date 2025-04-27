@@ -2,7 +2,7 @@ import type { Route } from "./+types/home";
 import { redirect } from 'react-router'
 import { validateSessionToken } from '@/auth.server';
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_: Route.MetaArgs) {
   return [
     { title: "Citadels Game" },
     { name: "description", content: "Welcome to Citadels Game!" },
