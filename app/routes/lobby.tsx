@@ -340,27 +340,29 @@ export default function Lobby() {
   }, [navigation.state, isCreatingRoom]);
 
   return (
-    <div className="max-w-3xl mx-auto p-5">
-      <div className="flex justify-between items-center mb-5">
-        <h1 className="text-2xl font-bold">Game Lobby</h1>
-        <div>
-          <span className="mr-3">Welcome, {user.username}!</span>
+    <div className="container mx-auto p-4">
+      <div className="navbar bg-base-100 rounded-box shadow-sm mb-6">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">Game Lobby</h1>
+        </div>
+        <div className="flex-none gap-2">
+          <div className="mr-2">Welcome, {user.username}!</div>
           <button
             onClick={handleLogout}
-            className="px-3 py-2 bg-red-500 text-white rounded cursor-pointer"
+            className="btn btn-error btn-sm"
           >
             Logout
           </button>
         </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-6">
         <button
           onClick={handleCreateRoom}
           disabled={
             isCreatingRoom || navigation.state !== "idle" || userRoom !== null
           }
-          className={`px-4 py-2.5 bg-green-500 text-white rounded ${isCreatingRoom || navigation.state !== "idle" || userRoom !== null ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
+          className={`btn ${userRoom !== null ? "btn-disabled" : "btn-primary"}`}
         >
           {userRoom !== null
             ? "Already in a room"
@@ -370,14 +372,17 @@ export default function Lobby() {
         </button>
       </div>
 
-      <h2 className="text-xl font-semibold mb-3">Available Rooms</h2>
+      <h2 className="text-xl font-semibold mb-4">Available Rooms</h2>
 
       {rooms.length === 0 ? (
-        <p className="text-gray-600">
-          No rooms available. Create one to get started!
-        </p>
+        <div className="alert alert-info">
+          <div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>No rooms available. Create one to get started!</span>
+          </div>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {rooms.map((room) => {
             const isOwner = room.owner === user.id.toString();
             const isPlayer = room.players
@@ -387,85 +392,86 @@ export default function Lobby() {
             return (
               <div
                 key={room.id}
-                className={`border border-gray-300 rounded p-4 ${isPlayer ? "bg-green-50" : "bg-white"}`}
+                className={`card ${isPlayer ? "bg-base-200" : "bg-base-100"} shadow-md`}
               >
-                <div className="mb-2.5 font-bold">
-                  Room ID: {room.id.substring(0, 8)}...
-                </div>
-                <div className="mb-3">
-                  <div className="flex items-center mb-1">
-                    <span className="font-medium mr-2">Owner:</span>
-                    <span className="bg-yellow-100 px-2 py-0.5 rounded text-sm">
-                      {room.ownerUsername}
-                    </span>
-                  </div>
+                <div className="card-body">
+                  <h3 className="card-title text-lg">
+                    Room ID: {room.id.substring(0, 8)}...
+                  </h3>
+                  
                   <div className="mb-2">
-                    <div className="font-medium mb-1">
-                      Players ({room.playerCount}):
+                    <div className="flex items-center mb-2">
+                      <span className="font-medium mr-2">Owner:</span>
+                      <div className="badge badge-warning">
+                        {room.ownerUsername}
+                      </div>
                     </div>
-                    <ul className="bg-gray-50 rounded border border-gray-200 p-2 max-h-24 overflow-y-auto">
-                      {room.playerUsernames.map((username, index) => (
-                        <li key={index} className="flex items-center py-0.5">
-                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                          <span
-                            className={
-                              username === user.username ? "font-medium" : ""
-                            }
-                          >
-                            {username} {username === user.username && "(You)"}
-                          </span>
-                          {username === room.ownerUsername && (
-                            <span className="ml-2 text-xs bg-yellow-200 px-1 py-0.5 rounded">
-                              Owner
+                    
+                    <div>
+                      <div className="font-medium mb-1">
+                        Players ({room.playerCount}):
+                      </div>
+                      <div className="max-h-32 overflow-y-auto bg-base-100 rounded-box p-2 border border-base-300">
+                        {room.playerUsernames.map((username, index) => (
+                          <div key={index} className="flex items-center py-1">
+                            <span className="badge badge-sm badge-success mr-2"></span>
+                            <span
+                              className={username === user.username ? "font-medium" : ""}
+                            >
+                              {username} {username === user.username && "(You)"}
                             </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                            {username === room.ownerUsername && (
+                              <div className="badge badge-warning badge-sm ml-2">
+                                Owner
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {!isPlayer ? (
-                  <button
-                    onClick={() => handleJoinRoom(room.id)}
-                    disabled={
-                      navigation.state !== "idle" ||
-                      (userRoom !== null && userRoom !== room.id)
-                    }
-                    className={`w-full px-3 py-2 bg-blue-500 text-white rounded ${navigation.state !== "idle" || (userRoom !== null && userRoom !== room.id) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
-                  >
-                    {userRoom !== null && userRoom !== room.id
-                      ? "Already in another room"
-                      : "Join Room"}
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      className="w-full px-3 py-2 bg-gray-500 text-white rounded"
-                      disabled
-                    >
-                      {isOwner ? "You are the owner" : "Already joined"}
-                    </button>
-
-                    {isOwner ? (
+                  <div className="card-actions justify-end">
+                    {!isPlayer ? (
                       <button
-                        onClick={() => handleCloseRoom(room.id)}
-                        disabled={navigation.state !== "idle"}
-                        className={`w-full px-3 py-2 bg-red-500 text-white rounded ${navigation.state !== "idle" ? "cursor-not-allowed" : "cursor-pointer"}`}
+                        onClick={() => handleJoinRoom(room.id)}
+                        disabled={
+                          navigation.state !== "idle" ||
+                          (userRoom !== null && userRoom !== room.id)
+                        }
+                        className={`btn ${userRoom !== null && userRoom !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
                       >
-                        Close Room
+                        {userRoom !== null && userRoom !== room.id
+                          ? "Already in another room"
+                          : "Join Room"}
                       </button>
                     ) : (
-                      <button
-                        onClick={() => handleLeaveRoom(room.id)}
-                        disabled={navigation.state !== "idle"}
-                        className={`w-full px-3 py-2 bg-yellow-500 text-white rounded ${navigation.state !== "idle" ? "cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        Leave Room
-                      </button>
+                      <div className="w-full space-y-2">
+                        <div className="badge badge-lg w-full p-3 badge-neutral">
+                          {isOwner ? "You are the owner" : "Already joined"}
+                        </div>
+
+                        {isOwner ? (
+                          <button
+                            onClick={() => handleCloseRoom(room.id)}
+                            disabled={navigation.state !== "idle"}
+                            className="btn btn-error w-full"
+                          >
+                            Close Room
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleLeaveRoom(room.id)}
+                            disabled={navigation.state !== "idle"}
+                            className="btn btn-warning w-full"
+                          >
+                            Leave Room
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
