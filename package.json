@@ -1,37 +1,32 @@
 {
   "name": "citadels",
-  "version": "1.0.0",
-  "description": "typescript react tanstack start",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev",
-    "build": "vinxi build",
-    "start": "vinxi start",
-    "typecheck": "tsc --noEmit"
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "yarn@4.9.1",
   "dependencies": {
-    "@libsql/client": "^0.15.4",
-    "@node-rs/argon2": "^2.0.2",
-    "@oslojs/crypto": "^1.0.1",
-    "@oslojs/encoding": "^1.1.0",
-    "@tanstack/react-router": "^1.117.1",
-    "@tanstack/react-start": "^1.118.0",
-    "drizzle-orm": "^0.43.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "vinxi": "^0.5.4"
+    "@react-router/node": "^7.5.2",
+    "@react-router/serve": "^7.5.2",
+    "isbot": "^5.1.17",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^7.5.2"
   },
   "devDependencies": {
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react": "^4.4.1",
-    "drizzle-kit": "^0.31.0",
-    "prettier": "^3.5.3",
-    "typescript": "^5.8.3",
+    "@react-router/dev": "^7.5.2",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "react-router-devtools": "^1.1.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
     "vite-tsconfig-paths": "^5.1.4"
-  }
+  },
+  "packageManager": "yarn@4.9.1"
 }
