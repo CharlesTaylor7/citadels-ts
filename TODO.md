@@ -14,11 +14,9 @@
 
 
 ## PLAN
-Need to teach AI how to use React router server fns
 Need websocket service
 Need tests for game service
 need seedable rng
-
 Need to start porting templates
 
 Get basic game working with the 8 core roles and no specials

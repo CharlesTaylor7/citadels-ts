@@ -2,15 +2,16 @@
  * TypeScript port of the Citadels lobby
  * Converted from Rust implementation
  */
-import { DistrictName } from './districts';
-import { Rank, RANKS, RoleName } from './roles';
-import { PlayerId } from './types';
-import { ROLES } from './characters';
+import { DistrictName } from "./districts";
+import { Rank, RANKS, RoleName } from "./roles";
+import { PlayerId } from "./types";
+import { ROLES } from "./characters";
+import { shuffle } from "./random";
 
 /**
  * Represents a player in the game
  */
-export interface Player {
+export interface LobbyMember {
   id: PlayerId;
   name: string;
 }
@@ -24,19 +25,19 @@ export const PlayerUtils = {
    * @param name The player's name
    * @returns A new player object
    */
-  demo(name: string): Player {
+  demo(name: string): LobbyMember {
     return {
       id: name,
       name: name,
     };
-  }
+  },
 };
 
 /**
  * Represents the game lobby
  */
 export interface Lobby {
-  players: Player[];
+  players: LobbyMember[];
   config: GameConfig;
 }
 
@@ -51,24 +52,22 @@ export const LobbyUtils = {
    */
   demo(count: number): Lobby {
     const players = [
-      'Alph',
-      'Brittany',
-      'Charlie',
-      'Dana',
-      'Eli',
-      'Francesca',
-      'George',
-      'Helen',
+      "Alph",
+      "Brittany",
+      "Charlie",
+      "Dana",
+      "Eli",
+      "Francesca",
+      "George",
+      "Helen",
     ];
 
     return {
       config: GameConfigUtils.default(),
-      players: players
-        .slice(0, count)
-        .map((p, i) => ({
-          id: `${i + 1}`,
-          name: p,
-        })),
+      players: players.slice(0, count).map((p, i) => ({
+        id: `${i + 1}`,
+        name: p,
+      })),
     };
   },
 
@@ -81,13 +80,13 @@ export const LobbyUtils = {
    */
   register(lobby: Lobby, id: string, name: string): Result<void> {
     // Check if username is taken
-    if (lobby.players.some(p => p.id !== id && p.name === name)) {
+    if (lobby.players.some((p) => p.id !== id && p.name === name)) {
       return { success: false, error: "username taken" };
     }
 
     // Find existing player with this ID
-    const existingPlayerIndex = lobby.players.findIndex(p => p.id === id);
-    
+    const existingPlayerIndex = lobby.players.findIndex((p) => p.id === id);
+
     if (existingPlayerIndex >= 0) {
       // Update existing player's name
       lobby.players[existingPlayerIndex].name = name;
@@ -98,21 +97,17 @@ export const LobbyUtils = {
         name: name,
       });
     }
-    
+
     return { success: true, value: undefined };
-  }
+  },
 };
 
 /**
  * Configuration options for game elements
  */
-export const CONFIG_OPTIONS = [
-  'Sometimes',
-  'Always',
-  'Never'
-] as const;
+export const CONFIG_OPTIONS = ["Sometimes", "Always", "Never"] as const;
 
-export type ConfigOption = typeof CONFIG_OPTIONS[number];
+export type ConfigOption = (typeof CONFIG_OPTIONS)[number];
 
 /**
  * Game configuration settings
@@ -133,9 +128,9 @@ export const GameConfigUtils = {
    */
   default(): GameConfig {
     const roles = new Set<RoleName>();
-    
+
     // Add all roles
-    for (const role of ROLES.map(r => r.name)) {
+    for (const role of ROLES.map((r) => r.name)) {
       roles.add(role);
     }
 
@@ -152,21 +147,24 @@ export const GameConfigUtils = {
    * @param roles The set of roles to enable
    * @returns A Result object indicating success or failure
    */
-  setRoles(config: GameConfig, roles: Set<RoleName>): Result<void, [Set<RoleName>, Set<Rank>]> {
+  setRoles(
+    config: GameConfig,
+    roles: Set<RoleName>
+  ): Result<void, [Set<RoleName>, Set<Rank>]> {
     const errorRanks = new Set<Rank>();
-    
+
     // Check if any rank has all its roles disabled
     for (let i = 0; i < ROLES.length; i += 3) {
       const chunk = ROLES.slice(i, i + 3);
-      if (chunk.every(c => !roles.has(c.name))) {
+      if (chunk.every((c) => !roles.has(c.name))) {
         errorRanks.add(chunk[0].rank);
       }
     }
-    
+
     if (errorRanks.size > 0) {
       return { success: false, error: [roles, errorRanks] };
     }
-    
+
     config.roles = roles;
     return { success: true, value: undefined };
   },
@@ -177,19 +175,19 @@ export const GameConfigUtils = {
    */
   baseSet(): GameConfig {
     const baseRoles: RoleName[] = [
-      'Assassin',
-      'Thief',
-      'Magician',
-      'King',
-      'Bishop',
-      'Merchant',
-      'Architect',
-      'Warlord',
-      'Artist',
+      "Assassin",
+      "Thief",
+      "Magician",
+      "King",
+      "Bishop",
+      "Merchant",
+      "Architect",
+      "Warlord",
+      "Artist",
     ];
-    
+
     const roles = new Set<RoleName>(baseRoles);
-    
+
     return {
       roleAnarchy: false,
       roles,
@@ -214,7 +212,7 @@ export const GameConfigUtils = {
    * @returns The configuration option for the district
    */
   district(config: GameConfig, district: DistrictName): ConfigOption {
-    return config.districts.get(district) || 'Sometimes';
+    return config.districts.get(district) || "Sometimes";
   },
 
   /**
@@ -224,7 +222,11 @@ export const GameConfigUtils = {
    * @param numPlayers Number of players
    * @returns A Result object with the selected roles
    */
-  selectRoles(config: GameConfig, rng: () => number, numPlayers: number): Result<RoleName[]> {
+  selectRoles(
+    config: GameConfig,
+    rng: () => number,
+    numPlayers: number
+  ): Result<RoleName[]> {
     // 9th rank is disallowed for 2
     // 9th rank is required for 3
     // 9th rank is optional for 4-7
@@ -234,25 +236,30 @@ export const GameConfigUtils = {
 
     if (config.roleAnarchy) {
       // Filter roles by player count and enabled status
-      const eligibleRoles = ROLES
-        .map(r => r.name)
-        .filter(r => {
-          const minPlayerCount = RoleNameUtils.minPlayerCount(r);
-          return numPlayers >= minPlayerCount && GameConfigUtils.roleEnabled(config, r);
-        });
+      const eligibleRoles = ROLES.map((r) => r.name).filter((r) => {
+        const minPlayerCount = RoleNameUtils.minPlayerCount(r);
+        return (
+          numPlayers >= minPlayerCount && GameConfigUtils.roleEnabled(config, r)
+        );
+      });
 
       // Randomly select roles
-      return { 
-        success: true, 
-        value: this.chooseMultiple(eligibleRoles, roleCount, rng) 
+      return {
+        success: true,
+        value: this.chooseMultiple(eligibleRoles, roleCount, rng),
       };
     } else {
       // Group roles by rank
-      const groupedByRank: RoleName[][] = Array(roleCount).fill(null).map(() => []);
-      
+      const groupedByRank: RoleName[][] = Array(roleCount)
+        .fill(null)
+        .map(() => []);
+
       for (const r of ROLES) {
         const minPlayerCount = RoleNameUtils.minPlayerCount(r.name);
-        if (numPlayers >= minPlayerCount && GameConfigUtils.roleEnabled(config, r.name)) {
+        if (
+          numPlayers >= minPlayerCount &&
+          GameConfigUtils.roleEnabled(config, r.name)
+        ) {
           const rankIndex = RankUtils.toIndex(r.rank);
           groupedByRank[rankIndex].push(r.name);
         }
@@ -260,20 +267,20 @@ export const GameConfigUtils = {
 
       // Select one role from each rank
       const result: RoleName[] = [];
-      
+
       for (let i = 0; i < groupedByRank.length; i++) {
         const roles = groupedByRank[i];
         if (roles.length === 0) {
-          return { 
-            success: false, 
-            error: `No enabled roles for rank ${i + 1}` 
+          return {
+            success: false,
+            error: `No enabled roles for rank ${i + 1}`,
           };
         }
-        
+
         const selectedRole = this.choose(roles, rng);
         result.push(selectedRole);
       }
-      
+
       return { success: true, value: result };
     }
   },
@@ -284,24 +291,28 @@ export const GameConfigUtils = {
    * @param rng Random number generator
    * @returns An array of selected district names
    */
-  selectUniqueDistricts(config: GameConfig, rng: () => number, uniqueDistricts: DistrictName[]): DistrictName[] {
+  selectUniqueDistricts(
+    config: GameConfig,
+    rng: () => number,
+    uniqueDistricts: DistrictName[]
+  ): DistrictName[] {
     const always: DistrictName[] = [];
     const sometimes: DistrictName[] = [];
-    
+
     for (const district of uniqueDistricts) {
       const option = GameConfigUtils.district(config, district);
-      if (option === 'Always') {
+      if (option === "Always") {
         always.push(district);
-      } else if (option === 'Sometimes') {
+      } else if (option === "Sometimes") {
         sometimes.push(district);
       }
       // 'Never' districts are ignored
     }
-    
+
     if (always.length < 14) {
       shuffle(sometimes, rng);
     }
-    
+
     return [...always, ...sometimes].slice(0, 14);
   },
 
@@ -326,17 +337,15 @@ export const GameConfigUtils = {
   chooseMultiple<T>(items: T[], count: number, rng: () => number): T[] {
     const result: T[] = [];
     const available = [...items];
-    
+
     for (let i = 0; i < count && available.length > 0; i++) {
       const index = Math.floor(rng() * available.length);
       result.push(available[index]);
       available.splice(index, 1);
     }
-    
+
     return result;
   },
-
- 
 };
 
 /**
@@ -359,18 +368,18 @@ export type Result<T, E = string> = SuccessResult<T> | ErrorResult<E>;
 const RoleNameUtils = {
   minPlayerCount: (role: RoleName): number => {
     switch (role) {
-      case 'Queen':
+      case "Queen":
         return 5;
-      case 'Emperor':
-      case 'Artist':
-      case 'TaxCollector':
+      case "Emperor":
+      case "Artist":
+      case "TaxCollector":
         return 3;
       default:
         return 0;
     }
-  }
+  },
 };
 
 const RankUtils = {
-  toIndex: (rank: Rank): number => RANKS.indexOf(rank) 
+  toIndex: (rank: Rank): number => RANKS.indexOf(rank),
 };

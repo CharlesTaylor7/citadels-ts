@@ -10,7 +10,10 @@ import {
 import { db, rooms, users, room_members, games } from "@/db.server";
 import { and, eq } from "drizzle-orm";
 import { getSession } from "@/auth.server";
-import crypto from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { GameConfigUtils, LobbyUtils } from "@/game/lobby";
+import { Game } from "@/game/game";
+import { config } from "node:process";
 
 export async function loader({ request }: { request: Request }) {
   const result = await getSession(request);
@@ -117,7 +120,7 @@ export async function action({ request }: { request: Request }) {
       }
 
       // Generate a random room ID
-      const roomId = crypto.randomUUID();
+      const roomId = randomUUID();
 
       // Create the room
       await db.insert(rooms).values({
@@ -172,78 +175,63 @@ export async function action({ request }: { request: Request }) {
       return { success: false, error: "Failed to leave room" };
     }
   } else if (intent === "start-game") {
-    try {
-      const roomId = formData.get("roomId") as string;
+    const roomId = formData.get("roomId") as string;
 
-      // Check if room exists
-      const room = await db
-        .select()
-        .from(rooms)
-        .where(eq(rooms.id, roomId))
-        .get();
+    // Check if room exists
+    const room = await db
+      .select()
+      .from(rooms)
+      .where(eq(rooms.id, roomId))
+      .get();
 
-      if (!room) {
-        return { success: false, error: "Room not found" };
-      }
-
-      // Check if user is the owner
-      if (room.owner_id !== userId.toString()) {
-        return {
-          success: false,
-          error: "Only the room owner can start the game",
-        };
-      }
-
-      // Check if there are enough players (at least 2)
-      const roomMembers = await db
-        .select()
-        .from(room_members)
-        .where(eq(room_members.room_id, roomId))
-        .all();
-
-      if (roomMembers.length < 2) {
-        return {
-          success: false,
-          error: "At least 2 players are required to start the game",
-        };
-      }
-
-      // Check if a game already exists
-      const existingGame = await db
-        .select()
-        .from(games)
-        .where(eq(games.id, roomId))
-        .get();
-
-      if (!existingGame) {
-        // Create initial game state
-        const initialState = {
-          phase: "setup",
-          players: roomMembers.map((member) => member.player_id),
-          currentTurn: 0,
-          round: 1,
-        };
-
-        // Create a new game record
-        await db.insert(games).values({
-          id: roomId,
-          state: JSON.stringify(initialState),
-          actions: JSON.stringify([
-            {
-              type: "GAME_CREATED",
-              timestamp: Date.now(),
-              playerId: userId.toString(),
-            },
-          ]),
-        });
-      }
-
-      // Redirect to the game page
-      return redirect(`/game/${roomId}`);
-    } catch (error) {
-      console.error("Error starting game:", error);
-      return { success: false, error: "Failed to start game" };
+    if (!room) {
+      return { success: false, error: "Room not found" };
     }
+
+    // Check if user is the owner
+    if (room.owner_id !== userId.toString()) {
+      return {
+        success: false,
+        error: "Only the room owner can start the game",
+      };
+    }
+
+    // Check if there are enough players (at least 2)
+    const roomMembers = await db
+      .select({ id: room_members.player_id, name: users.username })
+      .from(room_members)
+      .innerJoin(users, eq(room_members.player_id, users.id))
+      .where(eq(room_members.room_id, roomId))
+      .all();
+
+    if (roomMembers.length < 2) {
+      return {
+        success: false,
+        error: "At least 2 players are required to start the game",
+      };
+    }
+
+    // Create initial game state
+    const initialState = new Game({
+      players: roomMembers,
+      config: GameConfigUtils.default(),
+    });
+
+    // Create a new game record
+    await db.insert(games).values({
+      id: roomId,
+      state: JSON.stringify(initialState),
+      actions: JSON.stringify([
+        {
+          type: "GAME_CREATED",
+          timestamp: Date.now(),
+          playerId: userId.toString(),
+        },
+      ]),
+    });
+
+    // Redirect to the game page
+    return redirect(`/game/${roomId}`);
   } else if (intent === "close-room") {
     const roomId = formData.get("roomId") as string;
 

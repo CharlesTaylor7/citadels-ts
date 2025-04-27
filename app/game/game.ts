@@ -13,8 +13,8 @@ import {
   WizardMethod,
 } from "./actions";
 import { DistrictData, DistrictName, DISTRICT_NAMES } from "./districts";
-import { performAction } from "./game-actions";
-import { Lobby } from "./lobby";
+import { Followup, performAction } from "./game-actions";
+import { GameConfig, Lobby } from "./lobby";
 import { Museum } from "./museum";
 import { Rank, RoleName, ROLE_NAMES } from "./roles";
 import { CardSuit, Marker, PlayerId } from "./types";
@@ -133,7 +133,7 @@ export class Deck<T> {
   private deck: T[];
   private discard: T[];
 
-  constructor(deck: T[]) {
+  constructor(deck: readonly T[]) {
     this.deck = [...deck];
     this.discard = [];
   }
@@ -233,7 +233,7 @@ export interface Draft {
 export function beginDraft(
   playerCount: number,
   player: PlayerIndex,
-  roles: RoleName[]
+  roles: readonly RoleName[]
 ): Draft {
   const draft: Draft = {
     playerCount,
@@ -331,7 +331,7 @@ export function createCharacter(role: RoleName): Character {
 export class Characters {
   characters: Character[];
 
-  constructor(roles: RoleName[]) {
+  constructor(roles: readonly RoleName[]) {
     this.characters = roles.map((role) => createCharacter(role));
   }
 
@@ -379,15 +379,16 @@ export class Game {
   players: Player[];
   characters: Characters;
   deck: Deck<DistrictName>;
-  museum: Museum;
   logs: string[];
   activeTurn: Turn;
   crowned: PlayerIndex;
-  taxCollector: number;
-  alchemist: number;
   firstToComplete: PlayerIndex | null;
   followup: Followup | null;
   notifications: Notification[];
+
+  museum: Museum;
+  alchemist: number;
+  taxCollector: number;
 
   /**
    * Create a new game
