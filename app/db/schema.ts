@@ -4,7 +4,7 @@ import { InferSelectModel } from "drizzle-orm";
 export const users = table("users", {
   id: integer("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  hashed_password: text("hashed_password").notNull(),
 });
 
 export const sessions = table("sessions", {

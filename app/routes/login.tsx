@@ -4,14 +4,13 @@ import { useState } from "react";
 import { db } from "../db";
 import { users, User } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { generateSessionToken, createSession, validateSessionToken } from "../services/auth-service";
-import crypto from "node:crypto";
-
-// Function to verify password (using SHA-256 for simplicity)
-function verifyPassword(inputPassword: string, storedPassword: string): boolean {
-  const hashedInput = crypto.createHash("sha256").update(inputPassword).digest("hex");
-  return hashedInput === storedPassword;
-}
+import {
+  generateSessionToken,
+  createSession,
+  validateSessionToken,
+  verifyPassword,
+} from "../services/auth-service";
+import { getCookie } from "vinxi/server";
 
 // Server function to handle login
 const login = createServerFn({ method: "POST" })
@@ -31,19 +30,19 @@ const login = createServerFn({ method: "POST" })
     }
 
     // Verify password
-    if (!verifyPassword(password, user.password)) {
+    if (!verifyPassword(password, user.hashed_password)) {
       return { success: false, error: "Invalid username or password" };
     }
 
     // Create session
     const token = generateSessionToken();
     await createSession(token, user.id);
-    
+
     // Return success with session token
-    return { 
-      success: true, 
+    return {
+      success: true,
       token,
-      user: { id: user.id, username: user.username }
+      user: { id: user.id, username: user.username },
     };
   });
 
@@ -52,15 +51,15 @@ const checkAuth = createServerFn({ method: "GET" })
   .validator((d: { token?: string }) => d)
   .handler(async ({ data }) => {
     const { token } = data;
-    
+
     if (!token) {
       return { isLoggedIn: false, user: null };
     }
-    
+
     const result = await validateSessionToken(token);
-    return { 
-      isLoggedIn: !!result.user, 
-      user: result.user 
+    return {
+      isLoggedIn: !!result.user,
+      user: result.user,
     };
   });
 
@@ -68,13 +67,13 @@ export const Route = createFileRoute("/login")({
   component: LoginComponent,
   loader: async () => {
     // Get token from cookie
-    const cookies = document.cookie.split('; ');
-    const tokenCookie = cookies.find(cookie => cookie.startsWith('session='));
-    const token = tokenCookie ? tokenCookie.split('=')[1] : undefined;
-    
-    if (token) {
-      const { isLoggedIn } = await checkAuth({ data: { token } });
-      
+    const session = getCookie("session");
+
+    if (session) {
+      const { isLoggedIn, user } = await checkAuth({
+        data: { token: session },
+      });
+
       // If already logged in, redirect to lobby
       if (isLoggedIn) {
         return {
@@ -82,7 +81,7 @@ export const Route = createFileRoute("/login")({
         };
       }
     }
-    
+
     return { isLoggedIn: false };
   },
 });
@@ -107,7 +106,7 @@ function LoginComponent() {
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30); // 30 days
         document.cookie = `session=${result.token}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax`;
-        
+
         // Navigate to lobby
         router.navigate({ to: "/lobby" });
       } else {
