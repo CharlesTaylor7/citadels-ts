@@ -497,7 +497,10 @@ export function discardDistrict(game: GameState, district: DistrictName): void {
 /**
  * Perform an action
  */
-export function performGameAction(game: GameState, action: ActionSubmission): ActionResult {
+export function performGameAction(
+  game: GameState,
+  action: ActionSubmission
+): ActionResult {
   return performAction(game, action);
 }
 
@@ -517,32 +520,34 @@ export function gainCards(game: GameState, amount: number): void {
   }
 }
 
-  /**
-   * Choose a card from a selection
-   */
-  chooseCard(card: DistrictName, selection: DistrictName[]): void {
-    const player = this.activePlayerMut();
-    if (!player) return;
+/**
+ * Choose a card from a selection
+ */
+export function chooseCard(
+  game: GameState,
+  card: DistrictName,
+  selection: DistrictName[]
+): void {
+  const player = getActivePlayer(game);
+  if (!player) return;
 
-    // Add chosen card to hand
-    player.hand.push(card);
+  // Add chosen card to hand
+  player.hand.push(card);
 
-    // Discard the rest
-    for (const district of selection) {
-      if (district !== card) {
-        this.discardDistrict(district);
-      }
-    }
-
-    const activeRole = this.activeRoleMut();
-    if (activeRole) {
-      activeRole.logs.push(`${player.name} chooses a card.`);
+  // Discard the rest
+  for (const district of selection) {
+    if (district !== card) {
+      discardDistrict(game, district);
     }
   }
 
-  /**
-   * Start a new turn
-   */
+  const activeRole = getActiveRole(game);
+  if (activeRole) {
+    activeRole.logs.push(`${player.name} chooses a card.`);
+  }
+}
+/*
+ 
   startTurn(): Result<void> {
     try {
       switch (this.activeTurn.type) {
@@ -610,9 +615,7 @@ export function gainCards(game: GameState, amount: number): void {
     }
   }
 
-  /**
-   * Process the end of a turn
-   */
+
   processTurnEnd(): Result<void> {
     try {
       switch (this.activeTurn.type) {
@@ -698,9 +701,6 @@ export function gainCards(game: GameState, amount: number): void {
     }
   }
 
-  /**
-   * Move to the next character in the call phase
-   */
   callNext(): void {
     if (this.activeTurn.type !== "Call") return;
 
@@ -734,9 +734,7 @@ export function gainCards(game: GameState, amount: number): void {
     }
   }
 
-  /**
-   * End the current round
-   */
+
   endRound(): void {
     // Check for heir (King or Patrician that was killed)
     const heir = this.characters.characters.find(
@@ -765,9 +763,6 @@ export function gainCards(game: GameState, amount: number): void {
     this.beginDraft();
   }
 
-  /**
-   * Clean up the round
-   */
   cleanupRound(): void {
     this.characters.cleanupRound();
     for (const player of this.players) {
@@ -775,9 +770,6 @@ export function gainCards(game: GameState, amount: number): void {
     }
   }
 
-  /**
-   * Begin the draft phase
-   */
   beginDraft(): void {
     this.activeTurn = {
       type: "Draft",
@@ -785,3 +777,4 @@ export function gainCards(game: GameState, amount: number): void {
     };
   }
 }
+*/
