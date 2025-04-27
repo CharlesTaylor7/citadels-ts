@@ -1,4 +1,5 @@
-import { users, sessions, Session, User, sessions } from "../db/schema";
+// https://lucia-auth.com/sessions/basic-api/drizzle-orm
+import { users, sessions, Session, User } from "../db/schema";
 import crypto from "node:crypto";
 import {
   encodeHexLowerCase,
@@ -9,7 +10,6 @@ import { db } from "../db";
 import { eq } from "drizzle-orm";
 
 export function generateSessionToken(): string {
-  // TODO
   const bytes = new Uint8Array(20);
   crypto.getRandomValues(bytes);
   const token = encodeBase32LowerCaseNoPadding(bytes);

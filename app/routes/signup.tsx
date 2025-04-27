@@ -2,105 +2,88 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { db } from "../db";
-import { users, User } from "../db/schema";
+import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { generateSessionToken, createSession, validateSessionToken } from "../services/auth-service";
+import { generateSessionToken, createSession } from "../services/auth-service";
 import crypto from "node:crypto";
 
-// Function to verify password (using SHA-256 for simplicity)
-function verifyPassword(inputPassword: string, storedPassword: string): boolean {
-  const hashedInput = crypto.createHash("sha256").update(inputPassword).digest("hex");
-  return hashedInput === storedPassword;
+// Function to hash password (using SHA-256 for simplicity)
+function hashPassword(password: string): string {
+  return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-// Server function to handle login
-const login = createServerFn({ method: "POST" })
+// Server function to handle signup
+const signup = createServerFn({ method: "POST" })
   .validator((d: { username: string; password: string }) => d)
   .handler(async ({ data }) => {
     const { username, password } = data;
 
-    // Find user by username
-    const user = await db
+    // Check if username already exists
+    const existingUser = await db
       .select()
       .from(users)
       .where(eq(users.username, username))
       .get();
 
-    if (!user) {
-      return { success: false, error: "Invalid username or password" };
+    if (existingUser) {
+      return { success: false, error: "Username already exists" };
     }
 
-    // Verify password
-    if (!verifyPassword(password, user.password)) {
-      return { success: false, error: "Invalid username or password" };
-    }
+    // Hash the password
+    const hashedPassword = hashPassword(password);
+
+    // Create the user
+    const [user] = await db
+      .insert(users)
+      .values({
+        username,
+        password: hashedPassword,
+      })
+      .returning();
 
     // Create session
     const token = generateSessionToken();
     await createSession(token, user.id);
-    
+
     // Return success with session token
-    return { 
-      success: true, 
+    return {
+      success: true,
       token,
-      user: { id: user.id, username: user.username }
+      user: { id: user.id, username: user.username },
     };
   });
 
-// Check if user is already logged in
-const checkAuth = createServerFn({ method: "GET" })
-  .validator((d: { token?: string }) => d)
-  .handler(async ({ data }) => {
-    const { token } = data;
-    
-    if (!token) {
-      return { isLoggedIn: false, user: null };
-    }
-    
-    const result = await validateSessionToken(token);
-    return { 
-      isLoggedIn: !!result.user, 
-      user: result.user 
-    };
-  });
-
-export const Route = createFileRoute("/login")({
-  component: LoginComponent,
-  loader: async () => {
-    // Get token from cookie
-    const cookies = document.cookie.split('; ');
-    const tokenCookie = cookies.find(cookie => cookie.startsWith('session='));
-    const token = tokenCookie ? tokenCookie.split('=')[1] : undefined;
-    
-    if (token) {
-      const { isLoggedIn } = await checkAuth({ data: { token } });
-      
-      // If already logged in, redirect to lobby
-      if (isLoggedIn) {
-        return {
-          redirect: "/lobby",
-        };
-      }
-    }
-    
-    return { isLoggedIn: false };
-  },
+export const Route = createFileRoute("/signup")({
+  component: SignupComponent,
 });
 
-function LoginComponent() {
+function SignupComponent() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validate inputs
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const result = await login({ data: { username, password } });
+      const result = await signup({ data: { username, password } });
 
       if (result.success) {
         // Set the session token in a cookie
@@ -111,10 +94,10 @@ function LoginComponent() {
         // Navigate to lobby
         router.navigate({ to: "/lobby" });
       } else {
-        setError(result.error || "Login failed");
+        setError(result.error || "Signup failed");
       }
     } catch (err) {
-      setError("An error occurred during login");
+      setError("An error occurred during signup");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -123,11 +106,9 @@ function LoginComponent() {
 
   return (
     <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
-      <h1>Login to Citadels</h1>
+      <h1>Sign Up for Citadels</h1>
 
-      {error && (
-        <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>
-      )}
+      {error && <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "15px" }}>
@@ -174,6 +155,28 @@ function LoginComponent() {
           />
         </div>
 
+        <div style={{ marginBottom: "15px" }}>
+          <label
+            htmlFor="confirmPassword"
+            style={{ display: "block", marginBottom: "5px" }}
+          >
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+            }}
+            required
+          />
+        </div>
+
         <button
           type="submit"
           disabled={isLoading}
@@ -188,15 +191,15 @@ function LoginComponent() {
             opacity: isLoading ? 0.7 : 1,
           }}
         >
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading ? "Signing up..." : "Sign Up"}
         </button>
       </form>
 
       <div style={{ marginTop: "15px", textAlign: "center" }}>
         <p>
-          Don't have an account?{" "}
-          <a href="/signup" style={{ color: "#4CAF50" }}>
-            Sign Up
+          Already have an account?{" "}
+          <a href="/login" style={{ color: "#4CAF50" }}>
+            Login
           </a>
         </p>
       </div>
