@@ -1,8 +1,19 @@
 import { sqliteTable as table, text, integer } from "drizzle-orm/sqlite-core";
+import { InferSelectModel } from "drizzle-orm";
 
 export const users = table("users", {
   id: integer("id").primaryKey(),
   username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+});
+
+export const sessions = table("sessions", {
+  id: text("id").primaryKey(),
+  // nullable. guest users can spectate without playing
+  userId: integer("user_id").references(() => users.id),
+  expiresAt: integer("expires_at", {
+    mode: "timestamp",
+  }).notNull(),
 });
 
 export const rooms = table("rooms", {
@@ -15,6 +26,7 @@ export const rooms = table("rooms", {
   // json of options
   options: text("options").notNull(),
 });
+
 export const games = table("games", {
   id: text("id")
     .primaryKey()
@@ -24,3 +36,8 @@ export const games = table("games", {
   // json array of actions
   actions: text("actions").notNull(),
 });
+
+export type User = InferSelectModel<typeof users>;
+export type Session = InferSelectModel<typeof sessions>;
+export type Room = InferSelectModel<typeof rooms>;
+export type Game = InferSelectModel<typeof games>;

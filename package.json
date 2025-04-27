@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vinxi dev",
     "build": "vinxi build",
-    "start": "vinxi start"
+    "start": "vinxi start",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +15,8 @@
   "packageManager": "yarn@4.9.1",
   "dependencies": {
     "@libsql/client": "^0.15.4",
+    "@oslojs/crypto": "^1.0.1",
+    "@oslojs/encoding": "^1.1.0",
     "@tanstack/react-router": "^1.117.1",
     "@tanstack/react-start": "^1.118.0",
     "drizzle-orm": "^0.43.1",
