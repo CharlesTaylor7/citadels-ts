@@ -1,24 +1,14 @@
 import { useState, useEffect } from "react";
 import { redirect, Link, useLoaderData, useNavigate } from "react-router";
-import { getSession } from "@/server/auth.server";
 import { trpc } from "@/trpc.client";
 import { toast } from "react-hot-toast";
 
-export async function loader({ request }: { request: Request }) {
-  const session = await getSession(request);
-
-  if (!session) {
-    return redirect("/login");
-  }
-
+export async function loader() {
   // Use server-side tRPC calls to get data
-  const rooms = await trpc.lobby.getRooms.query();
-  const userRoom = await trpc.lobby.getUserRoom.query({
-    userId: session.user.id,
-  });
+  const rooms = await trpc.getRooms.query();
+  const userRoom = await trpc.getUserRoom.query();
 
   return {
-    user: session.user,
     rooms,
     userRoom,
   };
@@ -26,16 +16,17 @@ export async function loader({ request }: { request: Request }) {
 
 export default function Lobby() {
   const {
-    user,
     rooms,
     userRoom,
     error: loaderError,
   } = useLoaderData<{
-    user: { id: number; username: string };
     rooms: Array<any>;
     userRoom: string | null;
     error?: string;
   }>();
+
+  // Get user from tRPC context
+  const { data: user } = trpc.user.me.useQuery();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(loaderError || null);
@@ -51,7 +42,7 @@ export default function Lobby() {
   const handleCreateRoom = async () => {
     setIsLoading(true);
     try {
-      const result = await trpc.lobby.createRoom.mutate({ userId: user.id });
+      const result = await trpc.lobby.createRoom.mutate();
       if (!result.success) {
         setError(result.error || "Failed to create room");
       } else {
@@ -70,7 +61,6 @@ export default function Lobby() {
     setIsLoading(true);
     try {
       const result = await trpc.lobby.joinRoom.mutate({
-        userId: user.id,
         roomId,
       });
       if (!result.success) {
@@ -91,7 +81,6 @@ export default function Lobby() {
     setIsLoading(true);
     try {
       const result = await trpc.lobby.leaveRoom.mutate({
-        userId: user.id,
         roomId,
       });
       if (!result.success) {
@@ -112,7 +101,6 @@ export default function Lobby() {
     setIsLoading(true);
     try {
       const result = await trpc.lobby.closeRoom.mutate({
-        userId: user.id,
         roomId,
       });
       if (!result.success) {
@@ -133,7 +121,6 @@ export default function Lobby() {
     setIsLoading(true);
     try {
       const result = await trpc.lobby.startGame.mutate({
-        userId: user.id,
         roomId,
       });
       if (!result.success) {
@@ -150,11 +137,15 @@ export default function Lobby() {
     }
   };
 
-  const handleLogout = () => {
-    // Clear the session cookie
-    document.cookie = "session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
-    // Redirect to login page
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await trpc.auth.logout.mutate();
+      // Redirect to login page
+      navigate("/login");
+    } catch (err) {
+      setError("Error logging out");
+      console.error(err);
+    }
   };
 
   return (
@@ -164,7 +155,7 @@ export default function Lobby() {
           <h1 className="text-2xl font-bold">Game Lobby</h1>
         </div>
         <div className="flex-none gap-2">
-          <div className="mr-2">Welcome, {user.username}!</div>
+          <div className="mr-2">Welcome, {user?.username || "Guest"}!</div>
           <button onClick={handleLogout} className="btn btn-error btn-sm">
             Logout
           </button>

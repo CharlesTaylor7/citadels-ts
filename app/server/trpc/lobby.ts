@@ -301,15 +301,13 @@ export const lobbyRouter = trpc.router({
     return roomsWithOwners;
   }),
 
-  getUserRoom: trpc.procedure
-    .input(z.object({ userId: z.number() }))
-    .query(async ({ input }) => {
-      const userRoomMembership = await db
-        .select()
-        .from(room_members)
-        .where(eq(room_members.player_id, input.userId.toString()))
-        .get();
+  getUserRoom: trpc.procedure.query(async ({ context }) => {
+    const userRoomMembership = await db
+      .select()
+      .from(room_members)
+      .where(eq(room_members.player_id, context.user.id.toString()))
+      .get();
 
-      return userRoomMembership ? userRoomMembership.room_id : null;
-    }),
+    return userRoomMembership ? userRoomMembership.room_id : null;
+  }),
 });

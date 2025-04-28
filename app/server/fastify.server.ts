@@ -6,7 +6,8 @@ import { reactRouterFastify } from "@mcansh/remix-fastify/react-router";
 import fastify from "fastify";
 import { createContext } from "./context.server";
 import { appRouter, type AppRouter } from "@/server/trpc/router";
-const server = fastify({
+import { lobbyRouter } from "@/server/trpc/lobby";
+export const server = fastify({
   maxParamLength: 5000,
 });
 server.register(fastifyTRPCPlugin, {
@@ -18,7 +19,7 @@ server.register(fastifyTRPCPlugin, {
   },
   prefix: "/trpc",
   trpcOptions: {
-    router: appRouter,
+    router: lobbyRouter,
     createContext,
     onError({ path, error }) {
       // report to error monitoring
@@ -28,11 +29,6 @@ server.register(fastifyTRPCPlugin, {
 });
 
 server.register(reactRouterFastify);
-(async () => {
-  try {
-    await server.listen({ port: 3000 });
-  } catch (err) {
-    server.log.error(err);
-    process.exit(1);
-  }
-})();
+server.get("/ping", (req, res) => {
+  res.send("pong");
+});

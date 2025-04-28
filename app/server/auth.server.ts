@@ -32,7 +32,9 @@ export async function createSession(
   return session;
 }
 
-async function validateSessionToken(token: string): Promise<SessionResult> {
+export async function validateSessionToken(
+  token: string
+): Promise<SessionResult> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const result = await db
     .select({ user: users, session: sessions })
@@ -40,13 +42,13 @@ async function validateSessionToken(token: string): Promise<SessionResult> {
     .where(eq(sessions.id, sessionId))
     .leftJoin(users, eq(sessions.userId, users.id));
   if (result.length < 1) {
-    return { session: null, user: null };
+    return null;
   }
   const { user, session } = result[0];
   // expire old sessions
   if (Date.now() >= session.expiresAt.getTime()) {
     await db.delete(sessions).where(eq(sessions.id, session.id));
-    return { session: null, user: null };
+    return null;
   }
   // extend sessions
   if (Date.now() >= session.expiresAt.getTime() - 1000 * 60 * 60 * 24 * 15) {
@@ -117,18 +119,4 @@ export async function verifyPasswordStrength(
     }
   }
   return true;
-}
-
-export async function getSession(
-  request: Request
-): Promise<{ session: Session; user: User } | null> {
-  // Get token from cookie
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const cookies = cookieHeader.split("; ");
-  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
-  const token = sessionCookie ? sessionCookie.split("=")[1] : undefined;
-
-  // If token exists, validate it
-  if (!token) return null;
-  return await validateSessionToken(token);
 }

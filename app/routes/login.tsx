@@ -12,17 +12,9 @@ import {
   generateSessionToken,
   createSession,
   verifyPasswordHash,
-  getSession,
 } from "@/server/auth.server";
 
-export async function loader({ request }: { request: Request }) {
-  const result = await getSession(request);
-
-  // If already logged in, redirect to lobby
-  if (result) {
-    return redirect("/lobby");
-  }
-}
+export async function loader({ request }: { request: Request }) {}
 
 export async function action({ request }: { request: Request }) {
   const formData = await request.formData();
@@ -49,7 +41,7 @@ export async function action({ request }: { request: Request }) {
     // Verify password
     const passwordValid = await verifyPasswordHash(
       user.hashed_password,
-      password
+      password,
     );
     if (!passwordValid) {
       throw new Error("Invalid username or password");
@@ -63,7 +55,7 @@ export async function action({ request }: { request: Request }) {
     const headers = new Headers();
     headers.append(
       "Set-Cookie",
-      `session=${token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`
+      `session=${token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`,
     );
     headers.append("Location", "/lobby");
 

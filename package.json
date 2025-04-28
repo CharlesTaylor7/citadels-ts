@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "tsx app/server/start.server.ts",
     "build": "react-router build",
-    "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "format": "prettier --write app/",
@@ -45,6 +45,7 @@
     "prettier": "^3.5.3",
     "react-router-devtools": "^1.1.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.3",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.31.0",
     "vite": "^6.0.0",
