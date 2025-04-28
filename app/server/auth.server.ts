@@ -34,7 +34,7 @@ export async function createSession(
 
 export async function validateSessionToken(
   token: string
-): Promise<SessionResult> {
+): Promise<User | null> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const result = await db
     .select({ user: users, session: sessions })
@@ -60,7 +60,7 @@ export async function validateSessionToken(
       })
       .where(eq(sessions.id, session.id));
   }
-  return { session, user };
+  return user;
 }
 
 export async function invalidateSession(sessionId: string): Promise<void> {

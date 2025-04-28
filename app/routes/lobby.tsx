@@ -1,16 +1,67 @@
 import { useState, useEffect } from "react";
 import { redirect, Link, useLoaderData, useNavigate } from "react-router";
-import { trpc } from "@/trpc.client";
 import { toast } from "react-hot-toast";
+import { db, rooms, users, room_members, games } from "@/server/db.server";
+import { eq } from "drizzle-orm";
+import { trpc } from "@/trpc.client";
 
 export async function loader() {
-  // Use server-side tRPC calls to get data
-  const rooms = await trpc.getRooms.query();
-  const userRoom = await trpc.getUserRoom.query();
+  // Get available rooms directly from the database
+  const allRooms = await db.select().from(rooms).all();
+
+  // Fetch owner usernames for each room
+  const roomsWithOwners = await Promise.all(
+    allRooms.map(async (room) => {
+      const owner = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, Number(room.owner_id)))
+        .get();
+
+      // Get all players in this room from room_members table
+      const roomMembers = await db
+        .select()
+        .from(room_members)
+        .where(eq(room_members.room_id, room.id))
+        .all();
+
+      const playerIds = roomMembers.map((member) => member.player_id);
+
+      // Get usernames for all players
+      const players = await Promise.all(
+        playerIds.map(async (playerId) => {
+          const player = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, Number(playerId)))
+            .get();
+          return player ? player.username : "Unknown";
+        })
+      );
+
+      // Check if a game exists for this room
+      const game = await db
+        .select()
+        .from(games)
+        .where(eq(games.id, room.id))
+        .get();
+
+      return {
+        ...room,
+        ownerUsername: owner ? owner.username : "Unknown",
+        playerUsernames: players,
+        playerCount: playerIds.length,
+        gameStarted: !!game,
+      };
+    })
+  );
+
+  // Get user's current room if any
+  const userRoomMembership = null; // You'll need to get the current user ID from the request context
 
   return {
-    rooms,
-    userRoom,
+    rooms: roomsWithOwners,
+    userRoom: userRoomMembership ? userRoomMembership.room_id : null,
   };
 }
 
@@ -23,11 +74,9 @@ export default function Lobby() {
     rooms: Array<any>;
     userRoom: string | null;
     error?: string;
+    pingResult: any;
   }>();
 
-  // Get user from tRPC context
-  const { data: user } = trpc.user.me.useQuery();
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(loaderError || null);
 
@@ -42,7 +91,7 @@ export default function Lobby() {
   const handleCreateRoom = async () => {
     setIsLoading(true);
     try {
-      const result = await trpc.lobby.createRoom.mutate();
+      const result = await trpc.createRoom.mutate({ userId: user?.id });
       if (!result.success) {
         setError(result.error || "Failed to create room");
       } else {
@@ -60,7 +109,7 @@ export default function Lobby() {
   const handleJoinRoom = async (roomId: string) => {
     setIsLoading(true);
     try {
-      const result = await trpc.lobby.joinRoom.mutate({
+      const result = await trpc.joinRoom.mutate({
         roomId,
       });
       if (!result.success) {
@@ -80,7 +129,7 @@ export default function Lobby() {
   const handleLeaveRoom = async (roomId: string) => {
     setIsLoading(true);
     try {
-      const result = await trpc.lobby.leaveRoom.mutate({
+      const result = await trpc.leaveRoom.mutate({
         roomId,
       });
       if (!result.success) {
@@ -100,7 +149,7 @@ export default function Lobby() {
   const handleCloseRoom = async (roomId: string) => {
     setIsLoading(true);
     try {
-      const result = await trpc.lobby.closeRoom.mutate({
+      const result = await trpc.closeRoom.mutate({
         roomId,
       });
       if (!result.success) {
@@ -120,7 +169,7 @@ export default function Lobby() {
   const handleStartGame = async (roomId: string) => {
     setIsLoading(true);
     try {
-      const result = await trpc.lobby.startGame.mutate({
+      const result = await trpc.startGame.mutate({
         roomId,
       });
       if (!result.success) {
@@ -139,7 +188,7 @@ export default function Lobby() {
 
   const handleLogout = async () => {
     try {
-      await trpc.auth.logout.mutate();
+      await trpc.logout.mutate();
       // Redirect to login page
       navigate("/login");
     } catch (err) {

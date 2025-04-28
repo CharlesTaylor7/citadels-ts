@@ -33,3 +33,15 @@ These are the core roles:
 
 The rust code uses Result types. For the typescript don't wrap the return values in Result types. Just either return the value directly or throw an error.
 The templates use askama for templating, which means they are a mix of html and jinja like syntax.
+
+For Typescript:
+- use plain objects and functions instead of classes
+- use type aliases instead of interfaces
+- use unions instead of enums
+- avoid any
+- avoid type assetions
+
+For React:
+- do not use trpc for querying data
+- use database queries directly in the loaders
+- use tprc for server mutations and subscriptions only

@@ -4,9 +4,9 @@ import {
 } from "@trpc/server/adapters/fastify";
 import { reactRouterFastify } from "@mcansh/remix-fastify/react-router";
 import fastify from "fastify";
-import { createContext } from "./context.server";
+import { createContext, getContext } from "./context.server";
 import { appRouter, type AppRouter } from "@/server/trpc/router";
-import { lobbyRouter } from "@/server/trpc/lobby";
+
 export const server = fastify({
   maxParamLength: 5000,
 });
@@ -19,7 +19,7 @@ server.register(fastifyTRPCPlugin, {
   },
   prefix: "/trpc",
   trpcOptions: {
-    router: lobbyRouter,
+    router: appRouter,
     createContext,
     onError({ path, error }) {
       // report to error monitoring
@@ -31,4 +31,10 @@ server.register(fastifyTRPCPlugin, {
 server.register(reactRouterFastify);
 server.get("/ping", (req, res) => {
   res.send("pong");
+});
+
+server.addHook("onRequest", async (req, res) => {
+  req.context = await getContext(req);
+  if (req.context.user == null) res.redirect("/login");
+  if (req.context.game != null) res.redirect(`/game/${req.context.game.id}`);
 });

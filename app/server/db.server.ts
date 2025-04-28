@@ -28,7 +28,7 @@ export const sessions = table("sessions", {
 });
 
 export const room_members = table("room_members", {
-  player_id: text("player_id")
+  player_id: integer("player_id")
     .primaryKey()
     .references(() => users.id),
   room_id: text("room_id")
@@ -37,7 +37,7 @@ export const room_members = table("room_members", {
 });
 export const rooms = table("rooms", {
   id: text("id").primaryKey(),
-  owner_id: text("owner_id")
+  owner_id: integer("owner_id")
     .notNull()
     .references(() => users.id),
   // json object of options
