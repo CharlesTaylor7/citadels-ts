@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { redirect, Link, useLoaderData, useNavigate } from "react-router";
-import { toast } from "react-hot-toast";
+import { Link, useLoaderData, useNavigate } from "react-router";
+import { trpc } from "@/trpc.client";
 import { db, rooms, users, room_members, games } from "@/server/db.server";
 import { eq } from "drizzle-orm";
-import { trpc } from "@/trpc.client";
 
 export async function loader() {
   // Get available rooms directly from the database
@@ -57,7 +56,8 @@ export async function loader() {
   );
 
   // Get user's current room if any
-  const userRoomMembership = null; // You'll need to get the current user ID from the request context
+  // Note: In a real implementation, you would get the user ID from the request context
+  const userRoomMembership = null;
 
   return {
     rooms: roomsWithOwners,
@@ -66,136 +66,10 @@ export async function loader() {
 }
 
 export default function Lobby() {
-  const {
-    rooms,
-    userRoom,
-    error: loaderError,
-  } = useLoaderData<{
+  const { rooms, userRoom } = useLoaderData<{
     rooms: Array<any>;
     userRoom: string | null;
-    error?: string;
-    pingResult: any;
   }>();
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(loaderError || null);
-
-  // Display error message if present
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-      setError(null);
-    }
-  }, [error]);
-
-  const handleCreateRoom = async () => {
-    setIsLoading(true);
-    try {
-      const result = await trpc.createRoom.mutate({ userId: user?.id });
-      if (!result.success) {
-        setError(result.error || "Failed to create room");
-      } else {
-        // Refresh the page to show the new room
-        window.location.reload();
-      }
-    } catch (err) {
-      setError("Error creating room");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleJoinRoom = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      const result = await trpc.joinRoom.mutate({
-        roomId,
-      });
-      if (!result.success) {
-        setError(result.error || "Failed to join room");
-      } else {
-        // Refresh the page to show updated room status
-        window.location.reload();
-      }
-    } catch (err) {
-      setError("Error joining room");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLeaveRoom = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      const result = await trpc.leaveRoom.mutate({
-        roomId,
-      });
-      if (!result.success) {
-        setError(result.error || "Failed to leave room");
-      } else {
-        // Refresh the page to show updated room status
-        window.location.reload();
-      }
-    } catch (err) {
-      setError("Error leaving room");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCloseRoom = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      const result = await trpc.closeRoom.mutate({
-        roomId,
-      });
-      if (!result.success) {
-        setError(result.error || "Failed to close room");
-      } else {
-        // Refresh the page to show updated room list
-        window.location.reload();
-      }
-    } catch (err) {
-      setError("Error closing room");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleStartGame = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      const result = await trpc.startGame.mutate({
-        roomId,
-      });
-      if (!result.success) {
-        setError(result.error || "Failed to start game");
-      } else {
-        // Navigate to the game page
-        navigate(`/game/${result.gameId}`);
-      }
-    } catch (err) {
-      setError("Error starting game");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await trpc.logout.mutate();
-      // Redirect to login page
-      navigate("/login");
-    } catch (err) {
-      setError("Error logging out");
-      console.error(err);
-    }
-  };
 
   return (
     <div className="container mx-auto p-4">

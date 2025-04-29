@@ -1,9 +1,4 @@
 /**
- * TypeScript port of the Citadels game types
- * Converted from Rust implementation
- */
-
-/**
  * All available card suits in the game
  */
 export const CARD_SUITS = [
@@ -11,14 +6,14 @@ export const CARD_SUITS = [
   "Religious",
   "Military",
   "Noble",
-  "Unique"
+  "Unique",
 ] as const;
 
 /**
  * Represents the different suits (categories) of district cards in the game
  * Type is derived from the array of all values
  */
-export type CardSuit = typeof CARD_SUITS[number];
+export type CardSuit = (typeof CARD_SUITS)[number];
 
 /**
  * Constants for card suits to avoid string literals throughout the code
@@ -28,7 +23,7 @@ export const CARD_SUIT = {
   RELIGIOUS: CARD_SUITS[1],
   MILITARY: CARD_SUITS[2],
   NOBLE: CARD_SUITS[3],
-  UNIQUE: CARD_SUITS[4]
+  UNIQUE: CARD_SUITS[4],
 } as const;
 
 /**
@@ -42,7 +37,7 @@ export const CardSuitUtils = {
    */
   toString(suit: CardSuit): string {
     return suit;
-  }
+  },
 };
 
 /**
@@ -52,7 +47,7 @@ export const BASE_MARKERS = [
   "Discarded",
   "Killed",
   "Bewitched",
-  "Robbed"
+  "Robbed",
 ] as const;
 
 /**
@@ -67,9 +62,9 @@ export type WarrantMarker = { type: "Warrant"; signed: boolean };
 /**
  * Union type for all possible markers in the game
  */
-export type Marker = 
-  | typeof BASE_MARKERS[number] 
-  | BlackmailMarker 
+export type Marker =
+  | (typeof BASE_MARKERS)[number]
+  | BlackmailMarker
   | WarrantMarker;
 
 /**
@@ -82,7 +77,11 @@ export const MarkerUtils = {
    * @returns True if the marker is a warrant, false otherwise
    */
   isWarrant(marker: Marker): marker is WarrantMarker {
-    return typeof marker === "object" && "type" in marker && marker.type === "Warrant";
+    return (
+      typeof marker === "object" &&
+      "type" in marker &&
+      marker.type === "Warrant"
+    );
   },
 
   /**
@@ -91,7 +90,11 @@ export const MarkerUtils = {
    * @returns True if the marker is a blackmail, false otherwise
    */
   isBlackmail(marker: Marker): marker is BlackmailMarker {
-    return typeof marker === "object" && "type" in marker && marker.type === "Blackmail";
+    return (
+      typeof marker === "object" &&
+      "type" in marker &&
+      marker.type === "Blackmail"
+    );
   },
 
   /**
@@ -110,7 +113,7 @@ export const MarkerUtils = {
    */
   createBlackmail(flowered: boolean = false): BlackmailMarker {
     return { type: "Blackmail", flowered };
-  }
+  },
 };
 
 /**

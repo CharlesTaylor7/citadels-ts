@@ -6,10 +6,9 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink } from '@trpc/client';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
-import { trpc } from './trpc.client';
+import { trpc, trpcClient, queryClient } from './trpc.client';
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -47,17 +46,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const [queryClient] = useState(() => new QueryClient());
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
-      links: [
-        httpBatchLink({
-          url: 'http://localhost:3000/trpc',
-        }),
-      ],
-    }),
-  );
-
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>

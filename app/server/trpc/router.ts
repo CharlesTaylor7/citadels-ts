@@ -1,19 +1,13 @@
-import { lobbyRouter } from "./lobby";
 import { t } from "./index";
+import { lobbyRouter } from "./lobby";
 import { gameRouter } from "./game";
-
-// Create a simple test router with a basic procedure
-const testRouter = t.router({
-  ping: t.procedure.query(() => {
-    return 'pong';
-  }),
-});
+import { authRouter } from "./auth";
 
 // Merge all routers
-export const appRouter = t.mergeRouters(
-  testRouter,
-  lobbyRouter,
-  gameRouter
-);
+export const appRouter = t.router({
+  lobby: lobbyRouter,
+  game: gameRouter,
+  auth: authRouter,
+});
 
 export type AppRouter = typeof appRouter;
