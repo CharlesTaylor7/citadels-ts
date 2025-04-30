@@ -1,12 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
-import { db, rooms, users, room_members, games } from "@/server/db";
+import { db, rooms, users, room_members, games, Room } from "@/server/db";
 import { useTRPC } from "@/trpc";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Lobby() {
   const trpc = useTRPC();
-  const lobbyQuery = useQuery(trpc.lobby.getRooms.query());
+  const userQuery = useQuery(trpc.auth.me.query());
+  const lobbyQuery = useQuery(trpc.lobby.rooms.query());
+  const placeholder = (e: unknown) => console.log(e);
+  const isLoading = false;
+  const userRoom = null;
+  const rooms: Room[] = [];
   return (
     <div className="container mx-auto p-4">
       <div className="navbar bg-base-100 rounded-box shadow-sm mb-6">
@@ -14,8 +19,7 @@ export default function Lobby() {
           <h1 className="text-2xl font-bold">Game Lobby</h1>
         </div>
         <div className="flex-none gap-2">
-          <div className="mr-2">Welcome, {user?.username || "Guest"}!</div>
-          <button onClick={handleLogout} className="btn btn-error btn-sm">
+          <button onClick={placeholder} className="btn btn-error btn-sm">
             Logout
           </button>
         </div>
@@ -23,7 +27,7 @@ export default function Lobby() {
 
       <div className="mb-6">
         <button
-          onClick={handleCreateRoom}
+          onClick={placeholder}
           disabled={isLoading || userRoom !== null}
           className="btn btn-primary"
         >
@@ -55,11 +59,6 @@ export default function Lobby() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {rooms.map((room) => {
-            const isOwner = room.owner_id === user.id.toString();
-            const isPlayer = room.playerUsernames.some(
-              (username) => username === user.username,
-            );
-
             return (
               <div
                 key={room.id}

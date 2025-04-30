@@ -45,10 +45,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <>
+    <TrpcProvider>
       <Outlet />
       <Toaster position="top-right" />
-    </>
+    </TrpcProvider>
   );
 }
 

@@ -4,7 +4,7 @@ import {
 } from "@trpc/server/adapters/fastify";
 import { reactRouterFastify } from "@mcansh/remix-fastify/react-router";
 import fastify from "fastify";
-import { createContext, getContext } from "./context.server";
+import { createContext, getUserSession } from "@/server/context.server";
 import { appRouter, type AppRouter } from "@/server/trpc/router";
 
 export const server = fastify({
@@ -38,7 +38,7 @@ server.addHook("onRequest", async (req, res) => {
   if (req.url !== "/") {
     return;
   }
-  const context = await getContext(req);
+  const context = await getUserSession(req);
 
   if (!context.user) return res.redirect("/login");
   if (context.game && context.room)

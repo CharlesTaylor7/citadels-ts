@@ -2,20 +2,28 @@ import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { validateSessionToken } from "@/server/auth";
 import { User, Game, db, room_members, games, rooms, Room } from "@/server/db";
 import { eq } from "drizzle-orm";
+import { FastifyRequest, FastifyReply } from "fastify";
 
 export type Context = {
+  req: FastifyRequest;
+  res: FastifyReply;
+  session: UserSession;
+};
+
+export type UserSession = {
   user: User | null;
   room: Room | null;
   game: Game | null;
 };
 
-export async function createContext({ req }: CreateFastifyContextOptions) {
-  return getContext(req);
+export async function createContext({ req, res }: CreateFastifyContextOptions) {
+  const session = await getUserSession(req);
+  return { session, req, res };
 }
 
-export async function getContext(
+export async function getUserSession(
   req: CreateFastifyContextOptions["req"],
-): Promise<Context> {
+): Promise<UserSession> {
   // Get session user if available
   const cookieHeader = req.headers.cookie || "";
   const cookies = cookieHeader.split("; ");

@@ -149,7 +149,7 @@ export const GameConfigUtils = {
    */
   setRoles(
     config: GameConfig,
-    roles: Set<RoleName>
+    roles: Set<RoleName>,
   ): Result<void, [Set<RoleName>, Set<Rank>]> {
     const errorRanks = new Set<Rank>();
 
@@ -225,7 +225,7 @@ export const GameConfigUtils = {
   selectRoles(
     config: GameConfig,
     rng: () => number,
-    numPlayers: number
+    numPlayers: number,
   ): Result<RoleName[]> {
     // 9th rank is disallowed for 2
     // 9th rank is required for 3
@@ -294,7 +294,7 @@ export const GameConfigUtils = {
   selectUniqueDistricts(
     config: GameConfig,
     rng: () => number,
-    uniqueDistricts: DistrictName[]
+    uniqueDistricts: DistrictName[],
   ): DistrictName[] {
     const always: DistrictName[] = [];
     const sometimes: DistrictName[] = [];

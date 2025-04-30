@@ -5,5 +5,20 @@ import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { GameConfigUtils } from "@/game/lobby";
 import { createGame } from "@/game/game-state";
+import { invalidateAllSessions } from "@/server/auth";
 
-export const authRouter = t.router({});
+export const authRouter = t.router({
+  logout: t.procedure.mutation(async ({ ctx }) => {
+    if (!ctx.session.user) return;
+    await invalidateAllSessions(ctx.session.user.id);
+    // expire cookie
+    ctx.res.header(
+      "Set-Cookie",
+      "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly",
+    );
+  }),
+
+  me: t.procedure.query(({ ctx }) => {
+    return ctx.session;
+  }),
+});

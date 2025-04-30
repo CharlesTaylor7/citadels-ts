@@ -44,7 +44,7 @@ export const rooms = table("rooms", {
   options: text("options").notNull(),
 
   // multiple games can happen in the same room, just not at the same time
-  gameId: text("game_id").references(() => games.id),
+  gameId: integer("game_id").references(() => games.id),
 });
 
 export const games = table("games", {
