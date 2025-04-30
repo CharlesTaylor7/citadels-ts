@@ -171,13 +171,6 @@ export const lobbyRouter = trpc.router({
         };
       }
 
-      // Delete all room members first
-      await db
-        .delete(room_members)
-        .where(eq(room_members.roomId, input.roomId))
-        .run();
-
-      // Then delete the room
       await db.delete(rooms).where(eq(rooms.id, input.roomId)).run();
 
       return { success: true };
