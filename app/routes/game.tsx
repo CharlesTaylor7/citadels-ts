@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { redirect, useLoaderData, useParams, Link } from "react-router";
 
-import { db, games, rooms, users, room_members } from "@/server/db.server";
+import { db, games, rooms, users, room_members } from "@/server/db";
 import { and, eq } from "drizzle-orm";
-import { getSession } from "@/server/auth.server";
+import { getSession } from "@/server/auth";
 export async function loader({
   request,
   params,
@@ -36,9 +36,9 @@ export async function loader({
     .from(room_members)
     .where(
       and(
-        eq(room_members.player_id, result.user.id.toString()),
-        eq(room_members.room_id, roomId)
-      )
+        eq(room_members.playerId, result.user.id.toString()),
+        eq(room_members.roomId, roomId),
+      ),
     )
     .get();
 
@@ -69,7 +69,7 @@ export async function loader({
   const roomMembers = await db
     .select()
     .from(room_members)
-    .where(eq(room_members.room_id, roomId))
+    .where(eq(room_members.roomId, roomId))
     .all();
 
   // Get player usernames
@@ -78,13 +78,13 @@ export async function loader({
       const player = await db
         .select()
         .from(users)
-        .where(eq(users.id, Number(member.player_id)))
+        .where(eq(users.id, Number(member.playerId)))
         .get();
       return {
-        id: member.player_id,
+        id: member.playerId,
         username: player ? player.username : "Unknown",
       };
-    })
+    }),
   );
 
   return {
@@ -112,7 +112,7 @@ export default function Game() {
 
   // Find the current player's game state
   const currentPlayerIndex = game.state.players?.findIndex(
-    (player: any) => player.id === user.id.toString()
+    (player: any) => player.id === user.id.toString(),
   );
   const currentPlayer =
     currentPlayerIndex >= 0 ? game.state.players[currentPlayerIndex] : null;
@@ -162,7 +162,7 @@ export default function Game() {
           {players.map((player) => {
             // Find this player in the game state
             const playerIndex = game.state.players?.findIndex(
-              (p: any) => p.id === player.id
+              (p: any) => p.id === player.id,
             );
             const playerState =
               playerIndex >= 0 ? game.state.players[playerIndex] : null;
@@ -273,7 +273,8 @@ export default function Game() {
                     const hasPlayer = char.player !== null;
                     const playerName = hasPlayer
                       ? players.find(
-                          (p) => game.state.players[char.player[0]]?.id === p.id
+                          (p) =>
+                            game.state.players[char.player[0]]?.id === p.id,
                         )?.username
                       : null;
 
@@ -286,7 +287,7 @@ export default function Game() {
                         {playerName && <span>{playerName}</span>}
                       </div>
                     );
-                  }
+                  },
                 )}
               </div>
             ) : (
@@ -308,7 +309,7 @@ export default function Game() {
               {game.state.crowned
                 ? players.find(
                     (p) =>
-                      game.state.players[game.state.crowned[0]]?.id === p.id
+                      game.state.players[game.state.crowned[0]]?.id === p.id,
                   )?.username
                 : "Unknown"}
             </p>

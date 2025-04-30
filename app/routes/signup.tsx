@@ -1,24 +1,26 @@
 import { useState } from "react";
 import { Form, Link, useActionData, useNavigation } from "react-router";
-import { users, db } from "@/server/db.server";
+import { users, db } from "@/server/db";
 import { eq } from "drizzle-orm";
 import {
   generateSessionToken,
   createSession,
   hashPassword,
   verifyPasswordStrength,
-} from "../server/auth.server";
-
-export async function loader() {}
+} from "@/server/auth";
 
 export async function action({ request }: { request: Request }) {
   const formData = await request.formData();
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const username = formData.get("username");
+  const password = formData.get("password");
+  const confirmPassword = formData.get("confirmPassword");
 
   // Validate inputs
-  if (!username || !password || !confirmPassword) {
+  if (
+    typeof username !== "string" ||
+    typeof password !== "string" ||
+    typeof confirmPassword !== "string"
+  ) {
     throw new Error("All fields are required");
   }
 
@@ -26,63 +28,42 @@ export async function action({ request }: { request: Request }) {
     throw new Error("Passwords do not match");
   }
 
-  try {
-    console.log("[Server] Signup request received for username:", username);
+  // Check if username already exists
+  const existingUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .get();
 
-    // Check if username already exists
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
-
-    if (existingUser) {
-      console.log("[Server] Signup failed: Username already exists");
-      throw new Error("Username already exists");
-    }
-
-    console.log("[Server] Hashing password...");
-    // Hash the password with argon2
-    const hashedPassword = await hashPassword(password);
-    console.log("[Server] Password hashed successfully");
-
-    console.log("[Server] Creating user in database...");
-    // Create the user
-    const [user] = await db
-      .insert(users)
-      .values({
-        username,
-        hashed_password: hashedPassword,
-      })
-      .returning();
-    console.log("[Server] User created with ID:", user?.id);
-
-    // Create session
-    console.log("[Server] Generating session token...");
-    const token = generateSessionToken();
-    console.log("[Server] Creating session...");
-    await createSession(token, user.id);
-    console.log("[Server] Session created successfully");
-
-    // Create response with redirect and cookie
-    const headers = new Headers();
-    headers.append(
-      "Set-Cookie",
-      `session=${token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`
-    );
-    headers.append("Location", "/lobby");
-
-    console.log("[Server] Signup completed successfully");
-    return new Response(null, {
-      status: 302,
-      headers,
-    });
-  } catch (error: any) {
-    console.error("[Server] Signup error:", error);
-    throw new Error(
-      error.message || "An unexpected error occurred during signup"
-    );
+  if (existingUser) {
+    throw new Error("Username already exists");
   }
+
+  // Hash the password with argon2
+  const hashedPassword = await hashPassword(password);
+
+  // Create the user
+  const [user] = await db
+    .insert(users)
+    .values({ username, hashedPassword })
+    .returning();
+
+  // Create session
+  const token = generateSessionToken();
+  await createSession(token, user.id);
+
+  // Create response with redirect and cookie
+  const headers = new Headers();
+  headers.append(
+    "Set-Cookie",
+    `session=${token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`,
+  );
+  headers.append("Location", "/lobby");
+
+  return new Response(null, {
+    status: 302,
+    headers,
+  });
 }
 
 export default function Signup() {
@@ -96,7 +77,7 @@ export default function Signup() {
   const [confirmError, setConfirmError] = useState("");
 
   const handlePasswordChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
@@ -114,7 +95,7 @@ export default function Signup() {
         const isStrongPassword = await verifyPasswordStrength(newPassword);
         if (!isStrongPassword) {
           setPasswordError(
-            "Password is too weak or has been compromised. Please use a stronger password."
+            "Password is too weak or has been compromised. Please use a stronger password.",
           );
         } else {
           setPasswordError("");
@@ -130,7 +111,7 @@ export default function Signup() {
   };
 
   const handleConfirmPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const newConfirmPassword = e.target.value;
     setConfirmPassword(newConfirmPassword);

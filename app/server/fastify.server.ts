@@ -41,6 +41,7 @@ server.addHook("onRequest", async (req, res) => {
   const context = await getContext(req);
 
   if (!context.user) return res.redirect("/login");
-  if (context.game) return res.redirect(`/game/${context.game.id}`);
+  if (context.game && context.room)
+    return res.redirect(`/game/${context.room.id}`);
   return res.redirect("/lobby");
 });

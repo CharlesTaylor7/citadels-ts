@@ -1,7 +1,7 @@
 import type { Route } from "./+types/home";
 import { redirect } from "react-router";
-import { validateSessionToken } from "@/server/auth.server";
-import { db, games, room_members, rooms } from "@/server/db.server";
+import { validateSessionToken } from "@/server/auth";
+import { db, games, room_members, rooms } from "@/server/db";
 import { eq } from "drizzle-orm";
 
 export function meta(_: Route.MetaArgs) {

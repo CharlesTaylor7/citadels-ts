@@ -6,75 +6,63 @@ import {
   useActionData,
   useNavigation,
 } from "react-router";
-import { users, db } from "@/server/db.server";
+import { users, db } from "@/server/db";
 import { eq } from "drizzle-orm";
 import {
   generateSessionToken,
   createSession,
   verifyPasswordHash,
-} from "@/server/auth.server";
-
-export async function loader({ request }: { request: Request }) {}
+} from "@/server/auth";
 
 export async function action({ request }: { request: Request }) {
   const formData = await request.formData();
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
+  const username = formData.get("username");
+  const password = formData.get("password");
 
   // Validate inputs
-  if (!username || !password) {
-    throw new Error("Username and password are required");
+  if (typeof username !== "string" || typeof password !== "string") {
+    return { error: "Username and password are required" };
   }
 
-  try {
-    // Find user by username
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+  // Find user by username
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .get();
 
-    if (!user) {
-      throw new Error("Invalid username or password");
-    }
-
-    // Verify password
-    const passwordValid = await verifyPasswordHash(
-      user.hashed_password,
-      password,
-    );
-    if (!passwordValid) {
-      throw new Error("Invalid username or password");
-    }
-
-    // Create session
-    const token = generateSessionToken();
-    await createSession(token, user.id);
-
-    // Create response with redirect and cookie
-    const headers = new Headers();
-    headers.append(
-      "Set-Cookie",
-      `session=${token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`,
-    );
-    headers.append("Location", "/lobby");
-
-    return new Response(null, {
-      status: 302,
-      headers,
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    throw new Error("An error occurred during login");
+  if (!user) {
+    return { error: "Invalid username or password" };
   }
+
+  // Verify password
+  const passwordValid = await verifyPasswordHash(user.hashedPassword, password);
+  if (!passwordValid) {
+    return { error: "Invalid username or password" };
+  }
+
+  // Create session
+  const token = generateSessionToken();
+  await createSession(token, user.id);
+
+  // Create response with redirect and cookie
+  const headers = new Headers();
+  headers.append(
+    "Set-Cookie",
+    `session=${token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`,
+  );
+  headers.append("Location", "/lobby");
+
+  return new Response(null, {
+    status: 302,
+    headers,
+  });
 }
 
 export default function Login() {
   const actionData = useActionData<{ error?: string }>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
-
-  const [password, setPassword] = useState("");
 
   return (
     <div className="max-w-md mx-auto p-5">
@@ -106,8 +94,6 @@ export default function Login() {
             id="password"
             name="password"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded"
             required
           />

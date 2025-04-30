@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { t as trpc } from ".";
-import { db, rooms, users, room_members, games } from "@/server/db.server";
+import { db, rooms, users, room_members, games } from "@/server/db";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { GameConfigUtils } from "@/game/lobby";
@@ -20,7 +20,7 @@ export const lobbyRouter = trpc.router({
     const userRoomMembership = await db
       .select()
       .from(room_members)
-      .where(eq(room_members.player_id, ctx.user?.id))
+      .where(eq(room_members.playerId, ctx.user?.id))
       .get();
 
     // If user is already in a room, return error
@@ -69,7 +69,7 @@ export const lobbyRouter = trpc.router({
       }
 
       // Check if user is the owner
-      if (room.owner_id === ctx.user?.id) {
+      if (room.ownerId === ctx.user?.id) {
         return {
           success: false,
           error: "Room owner cannot leave. Please close the room instead.",
@@ -79,7 +79,7 @@ export const lobbyRouter = trpc.router({
       // Remove the user from the room_members table
       await db
         .delete(room_members)
-        .where(eq(room_members.player_id, ctx.user?.id))
+        .where(eq(room_members.playerId, ctx.user?.id))
         .run();
 
       return { success: true };
@@ -103,7 +103,7 @@ export const lobbyRouter = trpc.router({
       }
 
       // Check if user is the owner
-      if (room.owner_id !== ctx.user.id) {
+      if (room.ownerId !== ctx.user.id) {
         return {
           success: false,
           error: "Only the room owner can start the game",
@@ -112,10 +112,10 @@ export const lobbyRouter = trpc.router({
 
       // Check if there are enough players (at least 2)
       const roomMembers = await db
-        .select({ id: room_members.player_id, name: users.username })
+        .select({ id: room_members.playerId, name: users.username })
         .from(room_members)
-        .innerJoin(users, eq(room_members.player_id, users.id))
-        .where(eq(room_members.room_id, input.roomId))
+        .innerJoin(users, eq(room_members.playerId, users.id))
+        .where(eq(room_members.roomId, input.roomId))
         .all();
 
       if (roomMembers.length < 2) {
@@ -159,7 +159,7 @@ export const lobbyRouter = trpc.router({
       }
 
       // Check if user is the owner
-      if (room.owner_id !== ctx.user?.id) {
+      if (room.ownerId !== ctx.user?.id) {
         return {
           success: false,
           error: "Only the room owner can close a room",
@@ -169,7 +169,7 @@ export const lobbyRouter = trpc.router({
       // Delete all room members first
       await db
         .delete(room_members)
-        .where(eq(room_members.room_id, input.roomId))
+        .where(eq(room_members.roomId, input.roomId))
         .run();
 
       // Then delete the room
@@ -188,11 +188,11 @@ export const lobbyRouter = trpc.router({
       const userRoomMembership = await db
         .select()
         .from(room_members)
-        .where(eq(room_members.player_id, ctx.user?.id))
+        .where(eq(room_members.playerId, ctx.user?.id))
         .get();
 
       // If user is already in a different room, return error
-      if (userRoomMembership && userRoomMembership.room_id !== input.roomId) {
+      if (userRoomMembership && userRoomMembership.roomId !== input.roomId) {
         return {
           success: false,
           error:
@@ -217,9 +217,9 @@ export const lobbyRouter = trpc.router({
         .from(room_members)
         .where(
           and(
-            eq(room_members.player_id, ctx.user?.id),
-            eq(room_members.room_id, input.roomId)
-          )
+            eq(room_members.playerId, ctx.user?.id),
+            eq(room_members.roomId, input.roomId),
+          ),
         )
         .get();
 

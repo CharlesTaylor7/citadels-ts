@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
-import { db, rooms, users, room_members, games } from "@/server/db.server";
-import { eq } from "drizzle-orm";
-
-export async function loader() {}
+import { db, rooms, users, room_members, games } from "@/server/db";
+import { useTRPC } from "@/trpc";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Lobby() {
+  const trpc = useTRPC();
+  const lobbyQuery = useQuery(trpc.lobby.getRooms.query());
   return (
     <div className="container mx-auto p-4">
       <div className="navbar bg-base-100 rounded-box shadow-sm mb-6">

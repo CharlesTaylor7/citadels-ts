@@ -14,7 +14,7 @@ import type { InferSelectModel } from "drizzle-orm";
 export const users = table("users", {
   id: integer("id").primaryKey(),
   username: text("username").notNull().unique(),
-  hashed_password: text("hashed_password").notNull(),
+  hashedPassword: text("hashed_password").notNull(),
 });
 
 export const sessions = table("sessions", {
@@ -28,31 +28,35 @@ export const sessions = table("sessions", {
 });
 
 export const room_members = table("room_members", {
-  player_id: integer("player_id")
+  playerId: integer("player_id")
     .primaryKey()
     .references(() => users.id),
-  room_id: text("room_id")
+  roomId: text("room_id")
     .notNull()
     .references(() => rooms.id),
 });
 export const rooms = table("rooms", {
   id: text("id").primaryKey(),
-  owner_id: integer("owner_id")
+  ownerId: integer("owner_id")
     .notNull()
     .references(() => users.id),
   // json object of options
   options: text("options").notNull(),
+
+  // multiple games can happen in the same room, just not at the same time
+  gameId: text("game_id").references(() => games.id),
 });
 
 export const games = table("games", {
-  id: text("id")
-    .primaryKey()
-    .references(() => rooms.id),
+  id: integer("id").primaryKey(),
   // json of the game state
   state: text("state").notNull(),
   // json array of actions
+  // the current state should ideally be derivable by replaying all the actions
   actions: text("actions").notNull(),
 });
+
+export const tables = { users, sessions, games, rooms, room_members };
 
 export type User = InferSelectModel<typeof users>;
 export type Session = InferSelectModel<typeof sessions>;
