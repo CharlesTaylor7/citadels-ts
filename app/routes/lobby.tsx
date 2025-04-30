@@ -1,76 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
-import { trpc } from "@/trpc.client";
 import { db, rooms, users, room_members, games } from "@/server/db.server";
 import { eq } from "drizzle-orm";
 
-export async function loader() {
-  // Get available rooms directly from the database
-  const allRooms = await db.select().from(rooms).all();
-
-  // Fetch owner usernames for each room
-  const roomsWithOwners = await Promise.all(
-    allRooms.map(async (room) => {
-      const owner = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, Number(room.owner_id)))
-        .get();
-
-      // Get all players in this room from room_members table
-      const roomMembers = await db
-        .select()
-        .from(room_members)
-        .where(eq(room_members.room_id, room.id))
-        .all();
-
-      const playerIds = roomMembers.map((member) => member.player_id);
-
-      // Get usernames for all players
-      const players = await Promise.all(
-        playerIds.map(async (playerId) => {
-          const player = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, Number(playerId)))
-            .get();
-          return player ? player.username : "Unknown";
-        })
-      );
-
-      // Check if a game exists for this room
-      const game = await db
-        .select()
-        .from(games)
-        .where(eq(games.id, room.id))
-        .get();
-
-      return {
-        ...room,
-        ownerUsername: owner ? owner.username : "Unknown",
-        playerUsernames: players,
-        playerCount: playerIds.length,
-        gameStarted: !!game,
-      };
-    })
-  );
-
-  // Get user's current room if any
-  // Note: In a real implementation, you would get the user ID from the request context
-  const userRoomMembership = null;
-
-  return {
-    rooms: roomsWithOwners,
-    userRoom: userRoomMembership ? userRoomMembership.room_id : null,
-  };
-}
+export async function loader() {}
 
 export default function Lobby() {
-  const { rooms, userRoom } = useLoaderData<{
-    rooms: Array<any>;
-    userRoom: string | null;
-  }>();
-
   return (
     <div className="container mx-auto p-4">
       <div className="navbar bg-base-100 rounded-box shadow-sm mb-6">
@@ -121,7 +56,7 @@ export default function Lobby() {
           {rooms.map((room) => {
             const isOwner = room.owner_id === user.id.toString();
             const isPlayer = room.playerUsernames.some(
-              (username) => username === user.username
+              (username) => username === user.username,
             );
 
             return (

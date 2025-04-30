@@ -34,7 +34,13 @@ server.get("/ping", (req, res) => {
 });
 
 server.addHook("onRequest", async (req, res) => {
-  req.context = await getContext(req);
-  if (req.context.user == null) res.redirect("/login");
-  if (req.context.game != null) res.redirect(`/game/${req.context.game.id}`);
+  console.log(req.url);
+  if (req.url !== "/") {
+    return;
+  }
+  const context = await getContext(req);
+
+  if (!context.user) return res.redirect("/login");
+  if (context.game) return res.redirect(`/game/${context.game.id}`);
+  return res.redirect("/lobby");
 });
