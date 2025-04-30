@@ -1,3 +1,8 @@
+##  Notes
+SSR is getting me nothing. 
+React router framework is making debugging harder and for features that I don't need.
+I should replace with a vanilla react app, and use react-router as a library only
+
 
 ## Lobby
 - [x] Can create room
