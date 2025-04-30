@@ -27,6 +27,7 @@ export const sessions = table("sessions", {
   }).notNull(),
 });
 
+// this ensures each player is in only 1 room at a time
 export const room_members = table("room_members", {
   playerId: integer("player_id")
     .primaryKey()
