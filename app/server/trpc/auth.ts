@@ -9,13 +9,13 @@ import { invalidateAllSessions } from "@/server/auth";
 
 export const authRouter = t.router({
   logout: t.procedure.mutation(async ({ ctx }) => {
-    if (!ctx.session.user) return;
-    await invalidateAllSessions(ctx.session.user.id);
     // expire cookie
     ctx.res.header(
       "Set-Cookie",
       "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly",
     );
+    if (!ctx.session.user) return;
+    await invalidateAllSessions(ctx.session.user.id);
   }),
 
   me: t.procedure.query(({ ctx }) => {
