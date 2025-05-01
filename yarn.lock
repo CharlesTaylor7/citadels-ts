@@ -3507,7 +3507,6 @@ __metadata:
     fastify: "npm:^5.3.2"
     isbot: "npm:^5.1.17"
     prettier: "npm:^3.5.3"
-    prng-xoshiro: "npm:^1.0.1"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
     react-hot-toast: "npm:^2.5.2"
@@ -7417,13 +7416,6 @@ __metadata:
   dependencies:
     timestring: "npm:^6.0.0"
   checksum: 10c0/e9129e6a6cd6bee308ac1cc347f6fc536d4f2fa4b2b7048af0ef2ac22880cbfda0834b6c32946437a75dc1004f95c1ebf4c583e4c69fa819958c92c59370673e
-  languageName: node
-  linkType: hard
-
-"prng-xoshiro@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "prng-xoshiro@npm:1.0.1"
-  checksum: 10c0/7eb6887f92bb59c91223e75a311d69328216e7d4ffac5569120ecb357c07b2decbabe1fb99dad8321da4fc79e67a56d0133ccde72c1ab179bc16cf66a8165cbe
   languageName: node
   linkType: hard
 

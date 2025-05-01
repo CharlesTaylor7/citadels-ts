@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { create as newXoshiro, PRNG } from "xoshiro";
+import xoshiro, { type PRNG } from "@apocentre/xoshiro";
 
 /**
  * Shuffle an array in-place
@@ -23,7 +23,7 @@ export function newSeed(): Seed {
 }
 
 export function newPrng(seed: Seed): PRNG {
-  const prng = newXoshiro("256+", Buffer.from(seed));
+  const prng = xoshiro.create("256+", Buffer.from(seed));
   console.log(prng.state);
   return prng;
 }
