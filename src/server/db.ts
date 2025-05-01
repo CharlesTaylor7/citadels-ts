@@ -1,5 +1,12 @@
 import { drizzle } from "drizzle-orm/libsql/node";
 import { createClient } from "@libsql/client";
+import {
+  sqliteTable as table,
+  text,
+  integer,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
+import { eq, sql, type InferSelectModel } from "drizzle-orm";
 
 // Create a client with the correct URL format
 const client = createClient({
@@ -7,9 +14,6 @@ const client = createClient({
 });
 
 export const db = drizzle(client);
-
-import { sqliteTable as table, text, integer } from "drizzle-orm/sqlite-core";
-import type { InferSelectModel } from "drizzle-orm";
 
 export const users = table("users", {
   id: integer("id").primaryKey(),
@@ -27,20 +31,29 @@ export const sessions = table("sessions", {
   }).notNull(),
 });
 
-// this ensures each player is in only 1 room at a time
-export const room_members = table("room_members", {
-  playerId: integer("player_id")
-    .primaryKey()
-    .references(() => users.id),
-  roomId: text("room_id")
-    .notNull()
-    .references(() => rooms.id),
-});
+export const room_members = table(
+  "room_members",
+  {
+    // this ensures each player is in only 1 room at a time
+    playerId: integer("player_id")
+      .primaryKey()
+      .references(() => users.id),
+    roomId: text("room_id")
+      .notNull()
+      .references(() => rooms.id),
+    owner: integer("owner", { mode: "boolean" }).notNull().default(false),
+  },
+  (table) => [
+    // this ensures each room has at most 1 owner
+    uniqueIndex("room_owners")
+      .on(table.roomId)
+      .where(sql`owner = true`),
+  ],
+);
+
 export const rooms = table("rooms", {
   id: text("id").primaryKey(),
-  ownerId: integer("owner_id")
-    .notNull()
-    .references(() => users.id),
+  name: text("name").notNull().default(""),
   // json object of options
   options: text("options").notNull(),
 

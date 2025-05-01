@@ -5,6 +5,12 @@ import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { GameConfigUtils } from "@/game/lobby";
 import { createGame } from "@/game/game-state";
+import { newSeed } from "@/game/random";
+import { Action } from "@/game/actions";
+
+function action(action: Action): Action {
+  return action;
+}
 
 export const lobbyRouter = trpc.router({
   createRoom: trpc.procedure.mutation(async ({ ctx }) => {
@@ -33,7 +39,6 @@ export const lobbyRouter = trpc.router({
     // Create the room
     await db.insert(rooms).values({
       id: roomId,
-      ownerId: ctx.session.user.id,
       options: "{}",
     });
 
@@ -41,6 +46,7 @@ export const lobbyRouter = trpc.router({
     await db.insert(room_members).values({
       playerId: ctx.session.user.id,
       roomId: roomId,
+      owner: true,
     });
 
     return { success: true };
@@ -63,14 +69,6 @@ export const lobbyRouter = trpc.router({
         return { success: false, error: "Room not found" };
       }
 
-      // Check if user is the owner
-      if (room.ownerId === ctx.session.user?.id) {
-        return {
-          success: false,
-          error: "Room owner cannot leave. Please close the room instead.",
-        };
-      }
-
       // Remove the user from the room_members table
       await db
         .delete(room_members)
@@ -80,71 +78,77 @@ export const lobbyRouter = trpc.router({
       return { success: true };
     }),
 
-  startGame: trpc.procedure
-    .input(z.object({ roomId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (!ctx.session.user) {
-        return { success: false, error: "User not authenticated" };
-      }
-      // Check if room exists
-      const room = await db
-        .select()
-        .from(rooms)
-        .where(eq(rooms.id, input.roomId))
-        .get();
+  startGame: trpc.procedure.mutation(async ({ ctx, input }) => {
+    if (!ctx.session.user) {
+      return { success: false, error: "User not authenticated" };
+    }
+    // Check if in room and owner
+    const room_member = await db
+      .select()
+      .from(room_members)
+      .where(eq(users.id, ctx.session.user.id))
+      .get();
 
-      if (!room) {
-        return { success: false, error: "Room not found" };
-      }
+    if (!room_member) {
+      return { success: false, error: "Room not found" };
+    }
 
-      // Check if user is the owner
-      if (room.ownerId !== ctx.session.user.id) {
-        return {
-          success: false,
-          error: "Only the room owner can start the game",
-        };
-      }
+    if (!room_member.owner) {
+      return {
+        success: false,
+        error: "Only the room owner can start the game",
+      };
+    }
 
-      // Check if there are enough players (at least 2)
-      const roomMembers = await db
-        .select({ id: room_members.playerId, name: users.username })
-        .from(room_members)
-        .innerJoin(users, eq(room_members.playerId, users.id))
-        .where(eq(room_members.roomId, input.roomId))
-        .all();
+    // Check if there are enough players (at least 2)
+    const roomMembers = await db
+      .select({ id: room_members.playerId, name: users.username })
+      .from(room_members)
+      .innerJoin(users, eq(room_members.playerId, users.id))
+      .where(eq(room_members.roomId, room_member.roomId))
+      .all();
 
-      if (roomMembers.length < 2) {
-        return {
-          success: false,
-          error: "At least 2 players are required to start the game",
-        };
-      }
+    if (roomMembers.length < 2) {
+      return {
+        success: false,
+        error: "At least 2 players are required to start the game",
+      };
+    }
 
-      // Create initial game state
-      const initialState = createGame({
-        players: roomMembers.map((member) => ({
-          id: member.id.toString(),
-          name: member.name,
-        })),
-        config: GameConfigUtils.default(),
-      });
+    // Create initial game state
 
-      // Create a new game record
+    const config = GameConfigUtils.default();
+    const players = roomMembers.map((member) => ({
+      id: member.id.toString(),
+      name: member.name,
+    }));
 
-      const [game] = await db
-        .insert(games)
-        .values({
-          state: JSON.stringify(initialState),
-          actions: JSON.stringify([]),
-        })
-        .returning({ id: games.id });
-      await db
-        .update(rooms)
-        .set({ gameId: game.id })
-        .where(eq(rooms.id, input.roomId));
+    // Create a new game record
 
-      return { success: true, gameId: input.roomId };
-    }),
+    const gameStartAction = action({
+      type: "GAME_START",
+      players,
+      config,
+      rngSeed: rngSeed,
+    });
+
+    const rngSeed = newSeed();
+    const initialState = createGame({ config, players, rngSeed });
+    const [game] = await db
+      .insert(games)
+      .values({
+        state: JSON.stringify(initialState),
+        actions: JSON.stringify([gameStartAction]),
+      })
+      .returning({ id: games.id });
+
+    await db
+      .update(rooms)
+      .set({ gameId: game.id })
+      .where(eq(rooms.id, room_member.roomId));
+
+    return { success: true, gameId: game.id };
+  }),
 
   closeRoom: trpc.procedure
     .input(z.object({ roomId: z.string() }))

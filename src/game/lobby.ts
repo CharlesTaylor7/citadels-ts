@@ -6,7 +6,7 @@ import { DistrictName } from "./districts";
 import { Rank, RANKS, RoleName } from "./roles";
 import { PlayerId } from "./types";
 import { ROLES } from "./characters";
-import { shuffle } from "./random";
+import { newSeed, Seed, shuffle } from "./random";
 
 /**
  * Represents a player in the game
@@ -33,74 +33,33 @@ export const PlayerUtils = {
   },
 };
 
-/**
- * Represents the game lobby
- */
-export interface Lobby {
+export interface GameConfig {
   players: LobbyMember[];
-  config: GameConfig;
+  config: GameOptions;
+  rngSeed: Seed;
 }
 
-/**
- * Utility functions for Lobby
- */
-export const LobbyUtils = {
-  /**
-   * Create a demo lobby with a specified number of players
-   * @param count The number of players
-   * @returns A new lobby object
-   */
-  demo(count: number): Lobby {
-    const players = [
-      "Alph",
-      "Brittany",
-      "Charlie",
-      "Dana",
-      "Eli",
-      "Francesca",
-      "George",
-      "Helen",
-    ];
+export function demo(count: number): GameConfig {
+  const players = [
+    "Alph",
+    "Brittany",
+    "Charlie",
+    "Dana",
+    "Eli",
+    "Francesca",
+    "George",
+    "Helen",
+  ];
 
-    return {
-      config: GameConfigUtils.default(),
-      players: players.slice(0, count).map((p, i) => ({
-        id: `${i + 1}`,
-        name: p,
-      })),
-    };
-  },
-
-  /**
-   * Register a player in the lobby
-   * @param lobby The lobby to register in
-   * @param id The player's ID
-   * @param name The player's name
-   * @returns A Result object indicating success or failure
-   */
-  register(lobby: Lobby, id: string, name: string): Result<void> {
-    // Check if username is taken
-    if (lobby.players.some((p) => p.id !== id && p.name === name)) {
-      return { success: false, error: "username taken" };
-    }
-
-    // Find existing player with this ID
-    const existingPlayerIndex = lobby.players.findIndex((p) => p.id === id);
-
-    if (existingPlayerIndex >= 0) {
-      // Update existing player's name
-      lobby.players[existingPlayerIndex].name = name;
-    } else {
-      // Add new player
-      lobby.players.push({
-        id: id,
-        name: name,
-      });
-    }
-
-    return { success: true, value: undefined };
-  },
-};
+  return {
+    rngSeed: newSeed(),
+    config: GameConfigUtils.default(),
+    players: players.slice(0, count).map((p, i) => ({
+      id: `${i + 1}`,
+      name: p,
+    })),
+  };
+}
 
 /**
  * Configuration options for game elements
@@ -112,7 +71,7 @@ export type ConfigOption = (typeof CONFIG_OPTIONS)[number];
 /**
  * Game configuration settings
  */
-export interface GameConfig {
+export interface GameOptions {
   roleAnarchy: boolean;
   roles: Set<RoleName>;
   districts: Map<DistrictName, ConfigOption>;
@@ -126,7 +85,7 @@ export const GameConfigUtils = {
    * Create default game configuration
    * @returns A new game configuration object
    */
-  default(): GameConfig {
+  default(): GameOptions {
     const roles = new Set<RoleName>();
 
     // Add all roles
@@ -148,7 +107,7 @@ export const GameConfigUtils = {
    * @returns A Result object indicating success or failure
    */
   setRoles(
-    config: GameConfig,
+    config: GameOptions,
     roles: Set<RoleName>,
   ): Result<void, [Set<RoleName>, Set<Rank>]> {
     const errorRanks = new Set<Rank>();
@@ -173,7 +132,7 @@ export const GameConfigUtils = {
    * Create a configuration with the base set of roles
    * @returns A new game configuration with base roles
    */
-  baseSet(): GameConfig {
+  baseSet(): GameOptions {
     const baseRoles: RoleName[] = [
       "Assassin",
       "Thief",
@@ -201,7 +160,7 @@ export const GameConfigUtils = {
    * @param role The role to check
    * @returns True if the role is enabled, false otherwise
    */
-  roleEnabled(config: GameConfig, role: RoleName): boolean {
+  roleEnabled(config: GameOptions, role: RoleName): boolean {
     return config.roles.has(role);
   },
 
@@ -211,7 +170,7 @@ export const GameConfigUtils = {
    * @param district The district to check
    * @returns The configuration option for the district
    */
-  district(config: GameConfig, district: DistrictName): ConfigOption {
+  district(config: GameOptions, district: DistrictName): ConfigOption {
     return config.districts.get(district) || "Sometimes";
   },
 
@@ -223,7 +182,7 @@ export const GameConfigUtils = {
    * @returns A Result object with the selected roles
    */
   selectRoles(
-    config: GameConfig,
+    config: GameOptions,
     rng: () => number,
     numPlayers: number,
   ): Result<RoleName[]> {
@@ -292,7 +251,7 @@ export const GameConfigUtils = {
    * @returns An array of selected district names
    */
   selectUniqueDistricts(
-    config: GameConfig,
+    config: GameOptions,
     rng: () => number,
     uniqueDistricts: DistrictName[],
   ): DistrictName[] {

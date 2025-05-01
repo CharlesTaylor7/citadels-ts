@@ -3,7 +3,7 @@
  * Converted from Rust implementation
  */
 import {
-  Action,
+  PlayerAction,
   ActionTag,
   ActionSubmission,
   BuildMethod,
@@ -14,7 +14,7 @@ import {
 } from "./actions";
 import { DistrictData, DistrictName, DISTRICT_NAMES } from "./districts";
 import { Followup, performAction } from "./game-actions";
-import { GameConfig, Lobby } from "./lobby";
+import { GameOptions, GameConfig } from "./lobby";
 import { Museum } from "./museum";
 import { Rank, RoleName, ROLE_NAMES } from "./roles";
 import { CardSuit, Marker, PlayerId } from "./types";
@@ -61,7 +61,7 @@ export interface Player {
 export function createPlayer(
   index: PlayerIndex,
   id: string,
-  name: string
+  name: string,
 ): Player {
   return {
     index,
@@ -80,7 +80,7 @@ export function createPlayer(
 
     countSuitForResourceGain(suit: CardSuit) {
       return this.city.filter(
-        (c) => c.name.data().suit === suit || c.name === "SchoolOfMagic"
+        (c) => c.name.data().suit === suit || c.name === "SchoolOfMagic",
       ).length;
     },
 
@@ -233,7 +233,7 @@ export interface Draft {
 export function beginDraft(
   playerCount: number,
   player: PlayerIndex,
-  roles: readonly RoleName[]
+  roles: readonly RoleName[],
 ): Draft {
   const draft: Draft = {
     playerCount,
@@ -300,7 +300,7 @@ export interface Character {
   player: PlayerIndex | null;
   markers: Marker[];
   logs: string[];
-  actions: Action[];
+  actions: PlayerAction[];
 
   cleanup(): void;
 }
@@ -393,10 +393,10 @@ export interface GameState {
 /**
  * Create a new game state
  */
-export function createGame(lobby: Lobby): GameState {
+export function createGame(lobby: GameConfig): GameState {
   // Initialize players
   const players = lobby.players.map((player, index) =>
-    createPlayer({ 0: index }, player.id, player.name)
+    createPlayer({ 0: index }, player.id, player.name),
   );
 
   // Initialize characters
@@ -462,7 +462,7 @@ export function completeAction(
   game: GameState,
   playerIndex: PlayerIndex,
   cost: number,
-  district: DistrictName
+  district: DistrictName,
 ): void {
   const player = game.players[playerIndex[0]];
   player.gold -= cost;
@@ -499,7 +499,7 @@ export function discardDistrict(game: GameState, district: DistrictName): void {
  */
 export function performGameAction(
   game: GameState,
-  action: ActionSubmission
+  action: ActionSubmission,
 ): ActionResult {
   return performAction(game, action);
 }
@@ -526,7 +526,7 @@ export function gainCards(game: GameState, amount: number): void {
 export function chooseCard(
   game: GameState,
   card: DistrictName,
-  selection: DistrictName[]
+  selection: DistrictName[],
 ): void {
   const player = getActivePlayer(game);
   if (!player) return;

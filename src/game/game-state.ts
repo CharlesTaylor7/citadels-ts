@@ -2,14 +2,10 @@
  * TypeScript port of the Citadels game state
  * Refactored from the Game class for better serialization
  */
-import {
-  Action,
-  ActionSubmission,
-  ActionResult,
-} from "./actions";
+import { PlayerAction, ActionSubmission, ActionResult } from "./actions";
 import { DistrictName, DISTRICT_NAMES } from "./districts";
 import { Followup, performAction } from "./game-actions";
-import { Lobby } from "./lobby";
+import { GameConfig as GameConfig } from "./lobby";
 import { Museum } from "./museum";
 import { RoleName, ROLE_NAMES } from "./roles";
 import { CardSuit } from "./types";
@@ -49,7 +45,7 @@ export interface Character {
   player: PlayerIndex | null;
   markers: (string | object)[];
   logs: string[];
-  actions: Action[];
+  actions: PlayerAction[];
 }
 
 /**
@@ -132,7 +128,7 @@ export interface GameState {
 export function createPlayer(
   index: PlayerIndex,
   id: string,
-  name: string
+  name: string,
 ): Player {
   return {
     index,
@@ -236,7 +232,7 @@ export function discardToBottom<T>(deck: Deck<T>, card: T): void {
 export function beginDraft(
   playerCount: number,
   player: PlayerIndex,
-  roles: readonly RoleName[]
+  roles: readonly RoleName[],
 ): Draft {
   const draft: Draft = {
     playerCount,
@@ -284,10 +280,10 @@ export function beginDraft(
 /**
  * Create a new game state
  */
-export function createGame(lobby: Lobby): GameState {
+export function createGame(lobby: GameConfig): GameState {
   // Initialize players
   const players = lobby.players.map((player, index) =>
-    createPlayer({ 0: index }, player.id, player.name)
+    createPlayer({ 0: index }, player.id, player.name),
   );
 
   // Initialize characters
@@ -353,7 +349,7 @@ export function completeAction(
   game: GameState,
   playerIndex: PlayerIndex,
   cost: number,
-  district: DistrictName
+  district: DistrictName,
 ): void {
   const player = game.players[playerIndex[0]];
   player.gold -= cost;
@@ -388,7 +384,10 @@ export function discardDistrict(game: GameState, district: DistrictName): void {
 /**
  * Perform an action
  */
-export function performGameAction(game: GameState, action: ActionSubmission): ActionResult {
+export function performGameAction(
+  game: GameState,
+  action: ActionSubmission,
+): ActionResult {
   return performAction(game, action);
 }
 
@@ -411,7 +410,10 @@ export function gainCards(game: GameState, amount: number): void {
 /**
  * Choose a card from a selection
  */
-export function chooseCard(game: GameState, cards: DistrictName[]): DistrictName {
+export function chooseCard(
+  game: GameState,
+  cards: DistrictName[],
+): DistrictName {
   // This is a placeholder - implement the actual logic
   return cards[0];
 }
@@ -424,12 +426,10 @@ export function gainResourcesForSuit(game: GameState, suit: CardSuit): void {
   if (!player) return;
 
   // Count districts of the specified suit
-  const count = player.city.filter(
-    (c) => {
-      // This is a placeholder - implement the actual logic to check district suit
-      return true;
-    }
-  ).length;
+  const count = player.city.filter((c) => {
+    // This is a placeholder - implement the actual logic to check district suit
+    return true;
+  }).length;
 
   if (count > 0) {
     player.gold += count;
@@ -437,7 +437,7 @@ export function gainResourcesForSuit(game: GameState, suit: CardSuit): void {
     const activeRole = getActiveRole(game);
     if (activeRole) {
       activeRole.logs.push(
-        `${player.name} gains ${count} gold from ${suit} districts.`
+        `${player.name} gains ${count} gold from ${suit} districts.`,
       );
     }
   }
@@ -480,7 +480,7 @@ export function callNext(game: GameState): void {
   } else {
     // Check for Emperor
     const emperor = game.characters.characters.findIndex(
-      (c) => c.role === "Emperor"
+      (c) => c.role === "Emperor",
     );
     if (emperor >= 0) {
       game.activeTurn = {
@@ -507,7 +507,7 @@ export function cleanupRound(game: GameState): void {
     character.logs = [];
     character.actions = [];
   }
-  
+
   // Clean up players
   for (const player of game.players) {
     player.roles = [];
@@ -522,13 +522,13 @@ export function endRound(game: GameState): void {
   const heir = game.characters.characters.find(
     (c) =>
       c.markers.includes("Killed") &&
-      (c.role === "King" || c.role === "Patrician")
+      (c.role === "King" || c.role === "Patrician"),
   );
 
   if (heir && heir.player) {
     game.crowned = heir.player;
     game.logs.push(
-      `${heir.role}'s heir ${game.players[game.crowned[0]].name} crowned.`
+      `${heir.role}'s heir ${game.players[game.crowned[0]].name} crowned.`,
     );
   }
 
@@ -548,7 +548,11 @@ export function endRound(game: GameState): void {
 /**
  * Start a new turn
  */
-export function startTurn(game: GameState): { success: boolean; value?: void; error?: string } {
+export function startTurn(game: GameState): {
+  success: boolean;
+  value?: void;
+  error?: string;
+} {
   try {
     switch (game.activeTurn.type) {
       case "GameOver":
@@ -589,10 +593,7 @@ export function startTurn(game: GameState): { success: boolean; value?: void; er
           const player = game.players[character.player[0]];
 
           // Add standard actions
-          character.actions = [
-            { action: "TakeGold" },
-            { action: "DrawCards" },
-          ];
+          character.actions = [{ action: "TakeGold" }, { action: "DrawCards" }];
 
           // Add character-specific actions
           switch (character.role) {
@@ -626,7 +627,7 @@ export function startTurn(game: GameState): { success: boolean; value?: void; er
               // Merchant gets 1 gold and resources for trade districts
               player.gold += 1;
               character.logs.push(
-                `${player.name} gains 1 gold as the Merchant.`
+                `${player.name} gains 1 gold as the Merchant.`,
               );
               gainResourcesForSuit(game, "Trade");
               break;
@@ -664,7 +665,11 @@ export function startTurn(game: GameState): { success: boolean; value?: void; er
 /**
  * Process the end of a turn
  */
-export function processTurnEnd(game: GameState): { success: boolean; value?: void; error?: string } {
+export function processTurnEnd(game: GameState): {
+  success: boolean;
+  value?: void;
+  error?: string;
+} {
   try {
     switch (game.activeTurn.type) {
       case "GameOver":
@@ -703,7 +708,7 @@ export function processTurnEnd(game: GameState): { success: boolean; value?: voi
             const player = game.players[activeRole.player[0]];
             player.gold += refund;
             activeRole.logs.push(
-              `The Alchemist is refunded ${refund} gold spent building.`
+              `The Alchemist is refunded ${refund} gold spent building.`,
             );
           }
 
@@ -739,13 +744,14 @@ export function deserializeGame(json: string): GameState {
 /**
  * Helper function to count districts of a specific suit for a player
  */
-export function countSuitForResourceGain(player: Player, suit: CardSuit): number {
-  return player.city.filter(
-    (c) => {
-      // This is a placeholder - implement the actual logic to check district suit
-      return true;
-    }
-  ).length;
+export function countSuitForResourceGain(
+  player: Player,
+  suit: CardSuit,
+): number {
+  return player.city.filter((c) => {
+    // This is a placeholder - implement the actual logic to check district suit
+    return true;
+  }).length;
 }
 
 /**

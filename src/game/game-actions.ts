@@ -3,7 +3,7 @@
  * Converted from Rust implementation
  */
 import {
-  Action,
+  PlayerAction,
   ActionTag,
   BuildMethod,
   CityDistrictTarget,
@@ -64,13 +64,13 @@ export interface Game {
   characters: Characters;
   followup?: Followup;
   taxCollector: number;
-  turnActions: Action[];
+  turnActions: PlayerAction[];
   activePlayer(): Player | undefined;
   activeRole(): Character | undefined;
   completeAction(
     playerIndex: PlayerIndex,
     cost: number,
-    district: DistrictName
+    district: DistrictName,
   ): void;
   discardDistrict(district: DistrictName): void;
 }
@@ -144,7 +144,7 @@ class ActionOutputBuilder {
  */
 function removeFirst<T>(
   array: T[],
-  predicate: (item: T) => boolean
+  predicate: (item: T) => boolean,
 ): T | undefined {
   const index = array.findIndex(predicate);
   if (index >= 0) {
@@ -159,7 +159,7 @@ function removeFirst<T>(
  * @param action The action to perform
  * @returns The result of the action
  */
-export function performAction(game: Game, action: Action): ActionResult {
+export function performAction(game: Game, action: PlayerAction): ActionResult {
   try {
     // This is a simplified version of the original function
     // The full implementation would handle all action types
@@ -196,7 +196,7 @@ export function performAction(game: Game, action: Action): ActionResult {
         // Clear all remaining warrants
         for (const character of Object.values(game.characters)) {
           const index = character.markers.findIndex(
-            (m) => typeof m === "object" && "type" in m && m.type === "Warrant"
+            (m) => typeof m === "object" && "type" in m && m.type === "Warrant",
           );
           if (index >= 0) {
             character.markers.splice(index, 1);
@@ -206,7 +206,7 @@ export function performAction(game: Game, action: Action): ActionResult {
         return {
           success: true,
           value: createActionOutput(
-            `The Magistrate (${name}) reveals a signed warrant and confiscates the ${district}; ${gold} gold is refunded.`
+            `The Magistrate (${name}) reveals a signed warrant and confiscates the ${district}; ${gold} gold is refunded.`,
           ).build(),
         };
       }
@@ -230,7 +230,7 @@ export function performAction(game: Game, action: Action): ActionResult {
         return {
           success: true,
           value: createActionOutput(
-            `They bribed the Blackmailer (${game.players[blackmailer[0]].name}) with ${half} gold.`
+            `They bribed the Blackmailer (${game.players[blackmailer[0]].name}) with ${half} gold.`,
           ).build(),
         };
       }
@@ -246,7 +246,7 @@ export function performAction(game: Game, action: Action): ActionResult {
         return {
           success: true,
           value: createActionOutput(
-            "They ignored the blackmail. Waiting on the Blackmailer's response."
+            "They ignored the blackmail. Waiting on the Blackmailer's response.",
           )
             .withFollowup({ type: "Blackmail", blackmailer })
             .build(),
@@ -269,7 +269,7 @@ export function performAction(game: Game, action: Action): ActionResult {
             typeof marker === "object" &&
             "type" in marker &&
             marker.type === "Blackmail" &&
-            marker.flowered
+            marker.flowered,
         );
 
         if (isFlowered) {
@@ -286,7 +286,7 @@ export function performAction(game: Game, action: Action): ActionResult {
           for (const character of Object.values(game.characters)) {
             const index = character.markers.findIndex(
               (m) =>
-                typeof m === "object" && "type" in m && m.type === "Blackmail"
+                typeof m === "object" && "type" in m && m.type === "Blackmail",
             );
             if (index >= 0) {
               character.markers.splice(index, 1);
@@ -296,7 +296,7 @@ export function performAction(game: Game, action: Action): ActionResult {
           return {
             success: true,
             value: createActionOutput(
-              `The Blackmailer (${game.players[blackmailer[0]].name}) reveals an active threat, and takes all ${gold} of their gold.`
+              `The Blackmailer (${game.players[blackmailer[0]].name}) reveals an active threat, and takes all ${gold} of their gold.`,
             ).build(),
           };
         } else {
@@ -304,7 +304,7 @@ export function performAction(game: Game, action: Action): ActionResult {
           for (const character of Object.values(game.characters)) {
             const index = character.markers.findIndex(
               (m) =>
-                typeof m === "object" && "type" in m && m.type === "Blackmail"
+                typeof m === "object" && "type" in m && m.type === "Blackmail",
             );
             if (index >= 0) {
               character.markers.splice(index, 1);
@@ -314,7 +314,7 @@ export function performAction(game: Game, action: Action): ActionResult {
           return {
             success: true,
             value: createActionOutput(
-              `The Blackmailer (${game.players[blackmailer[0]].name}) reveals an inactive threat. Nothing happens.`
+              `The Blackmailer (${game.players[blackmailer[0]].name}) reveals an inactive threat. Nothing happens.`,
             ).build(),
           };
         }

@@ -7,10 +7,11 @@
     "build": "react-router build",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "format": "prettier --write app/",
-    "lint": "eslint app/"
+    "format": "prettier --write src/",
+    "lint": "eslint src/"
   },
   "dependencies": {
+    "@apocentre/xoshiro": "^2.0.5",
     "@fastify/websocket": "^11.0.2",
     "@libsql/client": "^0.15.4",
     "@mcansh/remix-fastify": "4.0.8",
