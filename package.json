@@ -11,7 +11,6 @@
     "start": "vinxi start"
   },
   "dependencies": {
-    "@apocentre/xoshiro": "^2.0.5",
     "@libsql/client": "^0.15.4",
     "@node-rs/argon2": "^2.0.2",
     "@oslojs/crypto": "^1.0.1",
