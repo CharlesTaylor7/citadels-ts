@@ -6,7 +6,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default createApp({
   server: {
-    preset: "node-server",
+    preset: "node_server",
     experimental: {
       asyncContext: true,
     },
