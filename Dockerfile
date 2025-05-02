@@ -5,7 +5,7 @@ COPY .yarn ./.yarn
 RUN corepack enable
 RUN yarn install --immutable
 COPY . .
-ENV NITRO_HOST="127.0.0.1"
+ENV NITRO_HOST="0.0.0.0"
 ENV NITRO_PORT="3000"
 RUN yarn build
 FROM node:20-alpine AS production

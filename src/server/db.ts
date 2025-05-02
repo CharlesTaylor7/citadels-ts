@@ -8,9 +8,9 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { eq, sql, type InferSelectModel } from "drizzle-orm";
 
-// Create a client with the correct URL format
+const volume = process.env["VOLUME"] ?? "./volume";
 const client = createClient({
-  url: "file:./volume/sqlite.db",
+  url: `file:${volume}/sqlite.db`,
 });
 
 export const db = drizzle(client);
