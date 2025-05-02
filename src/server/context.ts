@@ -1,17 +1,14 @@
 import { validateSessionToken } from "@/server/auth";
-import { User, Game, db, room_members, games, rooms, Room } from "@/server/db";
-import {
-  FetchCreateContextFn,
-  FetchCreateContextFnOptions,
-} from "@trpc/server/adapters/fetch";
+import { User, Game, Room, room_members, games, rooms } from "@/server/schema";
+import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { eq } from "drizzle-orm";
-import { FastifyRequest, FastifyReply } from "fastify";
-import { AppRouter } from "./trpc/router";
+import { connect } from "@/server/db";
 
 export type Context = {
   request: unknown;
   responseHeaders: unknown;
   session: UserSession;
+  db: Awaited<ReturnType<typeof connect>>;
 };
 
 export type UserSession = {
@@ -24,11 +21,13 @@ export async function createContext({
   req,
   resHeaders,
 }: FetchCreateContextFnOptions) {
-  const session = await getUserSession(req);
-  return { session, request: req, responseHeaders: resHeaders };
+  const db = await connect();
+  const session = await getUserSession(db, req);
+  return { db, session, request: req, responseHeaders: resHeaders };
 }
 
 export async function getUserSession(
+  db: Context["db"],
   req: FetchCreateContextFnOptions["req"],
 ): Promise<UserSession> {
   // Get session user if available

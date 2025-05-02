@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { t as trpc } from ".";
-import { db, rooms, users, room_members, games } from "@/server/db";
+import { db, rooms, users, room_members, games } from "@/server/schema";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { GameConfigUtils } from "@/server/game/lobby";
