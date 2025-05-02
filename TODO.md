@@ -1,4 +1,5 @@
 # Shortlsit
+- [ ] Dockerize and deploy
 - [ ] Websocket for rooms
 
 # Backend
@@ -23,10 +24,6 @@ Need to serialize actions and make game replayable from actions
 - [x] can leave a room
 - [x] Owner can start game
 
-
-#  Tech Debt
-## React Router
-- [ ] Demote from framework mode to library mode
 
 # PLAN
 The ai doesn't like to port files over about 500 LOC

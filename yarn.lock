@@ -4367,12 +4367,12 @@ __metadata:
     eslint-plugin-react: "npm:^7.37.5"
     eslint-plugin-react-hooks: "npm:^5.2.0"
     prettier: "npm:^3.5.3"
+    prng-xoshiro: "npm:^1.0.1"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
     react-hot-toast: "npm:^2.5.2"
     react-router: "npm:^7.5.2"
     tailwindcss: "npm:^4.0.0"
-    tsx: "npm:^4.19.3"
     typescript: "npm:^5.7.2"
     typescript-eslint: "npm:^8.31.0"
     vinxi: "npm:0.5.3"
@@ -6077,7 +6077,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.25.1":
+"eslint@npm:9.25.1":
   version: 9.25.1
   resolution: "eslint@npm:9.25.1"
   dependencies:
@@ -9562,6 +9562,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"prng-xoshiro@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "prng-xoshiro@npm:1.0.1"
+  checksum: 10c0/7eb6887f92bb59c91223e75a311d69328216e7d4ffac5569120ecb357c07b2decbabe1fb99dad8321da4fc79e67a56d0133ccde72c1ab179bc16cf66a8165cbe
+  languageName: node
+  linkType: hard
+
 "proc-log@npm:^5.0.0":
   version: 5.0.0
   resolution: "proc-log@npm:5.0.0"
@@ -11196,7 +11203,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:^4.19.2, tsx@npm:^4.19.3":
+"tsx@npm:^4.19.2":
   version: 4.19.4
   resolution: "tsx@npm:4.19.4"
   dependencies:

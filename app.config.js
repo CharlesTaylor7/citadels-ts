@@ -44,24 +44,5 @@ export default createApp({
         tsconfigPaths(),
       ],
     },
-    {
-      type: "spa",
-      name: "citadels",
-      handler: "./citadels.html",
-      target: "browser",
-      plugins: () => [
-        TanStackRouterVite({
-          target: "react",
-          autoCodeSplitting: true,
-          routesDirectory: "./src/client/citadel-routes",
-          generatedRouteTree: "./src/client/route-tree.ts",
-          enableRouteTreeFormatting: false,
-          enableRouteGeneration: true,
-        }),
-        react(),
-        tailwindcss(),
-        tsconfigPaths(),
-      ],
-    },
   ],
 });
