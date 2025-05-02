@@ -3,26 +3,26 @@ import {
   Outlet,
   createRootRouteWithContext,
   useRouterState,
-} from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+} from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
-import { Spinner } from './-components/spinner'
-import type { TRPCOptionsProxy } from '@trpc/tanstack-react-query'
-import type { AppRouter } from '../../trpc-server.handler'
-import type { QueryClient } from '@tanstack/react-query'
+import { Spinner } from "./-components/spinner";
+import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import type { AppRouter } from "@/server/trpc/router";
+import type { QueryClient } from "@tanstack/react-query";
 
 export interface RouterAppContext {
-  trpc: TRPCOptionsProxy<AppRouter>
-  queryClient: QueryClient
+  trpc: TRPCOptionsProxy<AppRouter>;
+  queryClient: QueryClient;
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
-})
+});
 
 function RootComponent() {
-  const isFetching = useRouterState({ select: (s) => s.isLoading })
+  const isFetching = useRouterState({ select: (s) => s.isLoading });
 
   return (
     <>
@@ -32,7 +32,7 @@ function RootComponent() {
           {/* Show a global spinner when the router is transitioning */}
           <div
             className={`text-3xl duration-300 delay-0 opacity-0 ${
-              isFetching ? ` duration-1000 opacity-40` : ''
+              isFetching ? ` duration-1000 opacity-40` : ""
             }`}
           >
             <Spinner />
@@ -42,8 +42,8 @@ function RootComponent() {
           <div className={`divide-y w-56`}>
             {(
               [
-                ['/', 'Home'],
-                ['/dashboard', 'Dashboard'],
+                ["/", "Home"],
+                ["/dashboard", "Dashboard"],
               ] as const
             ).map(([to, label]) => {
               return (
@@ -65,7 +65,7 @@ function RootComponent() {
                     {label}
                   </Link>
                 </div>
-              )
+              );
             })}
           </div>
           <div className={`flex-1 border-l border-gray-200`}>
@@ -77,5 +77,5 @@ function RootComponent() {
       <TanStackRouterDevtools position="bottom-left" />
       <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
     </>
-  )
+  );
 }

@@ -1,15 +1,31 @@
- import {shuffle} from '@/game/random'; 
-import { DistrictName } from './types';
+import { shuffle } from "@/server/game/random";
+import { DistrictName } from "./types";
 export class Museum {
   private cards: DistrictName[] = [];
   private artifacts: string[] = [];
 
   // List of all possible artifacts that can be assigned to museum cards
   private static readonly ARTIFACTS: string[] = [
-    "⚱️", "🏺", "🖼️", "🗿", "🏛️", "⛲", "🕰️", "🦴", "🦾", "⚰️", "🚀", "🦖", "🦣", "🦤", "🦕",
-    "💎", "🪩", "🔱", "🧋",
+    "⚱️",
+    "🏺",
+    "🖼️",
+    "🗿",
+    "🏛️",
+    "⛲",
+    "🕰️",
+    "🦴",
+    "🦾",
+    "⚰️",
+    "🚀",
+    "🦖",
+    "🦣",
+    "🦤",
+    "🦕",
+    "💎",
+    "🪩",
+    "🔱",
+    "🧋",
   ];
-
 
   /**
    * Get the artifacts currently assigned to cards in the museum
@@ -28,15 +44,15 @@ export class Museum {
   public tuck(card: DistrictName): void {
     // Add the card to our collection
     this.cards.push(card);
-    
+
     // If we need more artifacts, generate them
     if (this.cards.length > this.artifacts.length) {
       // Create a copy of the artifacts array
       const newArtifacts = [...Museum.ARTIFACTS];
-      
+
       // Shuffle the artifacts (Fisher-Yates algorithm)
       shuffle(newArtifacts, () => Math.random());
-      
+
       // Add the shuffled artifacts to our collection
       this.artifacts = this.artifacts.concat(newArtifacts);
     }
@@ -49,4 +65,3 @@ export class Museum {
     return this.cards;
   }
 }
-

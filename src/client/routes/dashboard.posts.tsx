@@ -1,28 +1,27 @@
-import * as React from 'react'
 import {
   Link,
   MatchRoute,
   Outlet,
   createFileRoute,
-} from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { trpc } from '../router'
-import { Spinner } from './-components/spinner'
+} from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { trpc } from "../router";
+import { Spinner } from "./-components/spinner";
 
-export const Route = createFileRoute('/dashboard/posts')({
-  errorComponent: () => 'Oh crap!',
+export const Route = createFileRoute("/dashboard/posts")({
+  errorComponent: () => "Oh crap!",
   loader: async ({ context: { trpc, queryClient } }) => {
-    await queryClient.ensureQueryData(trpc.posts.queryOptions())
-    return
+    await queryClient.ensureQueryData(trpc.dashboard.posts.queryOptions());
+    return;
   },
   pendingComponent: Spinner,
   component: DashboardPostsComponent,
-})
+});
 
 function DashboardPostsComponent() {
-  const postsQuery = useQuery(trpc.posts.queryOptions())
+  const postsQuery = useQuery(trpc.dashboard.posts.queryOptions());
 
-  const posts = postsQuery.data || []
+  const posts = postsQuery.data || [];
 
   return (
     <div className="flex-1 flex">
@@ -40,7 +39,7 @@ function DashboardPostsComponent() {
                 activeProps={{ className: `font-bold` }}
               >
                 <pre className="text-sm">
-                  #{post.id} - {post.title}{' '}
+                  #{post.id} - {post.title}{" "}
                   <MatchRoute
                     to="/dashboard/posts/$postId"
                     params={{
@@ -53,12 +52,12 @@ function DashboardPostsComponent() {
                 </pre>
               </Link>
             </div>
-          )
+          );
         })}
       </div>
       <div className="flex-1 border-l border-gray-200">
         <Outlet />
       </div>
     </div>
-  )
+  );
 }

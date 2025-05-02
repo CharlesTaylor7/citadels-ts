@@ -1,14 +1,6 @@
-# Tech Stack
-Package manager: Yarn
+# Example
 
-## Frontend
-- React Router
-- react query
-- misc frontend libs
-- fastify
+To run this example:
 
-## Backend
-- Node
-- Fastify
-- Trpc for api calls and websockets
-- Drizzle
+- `npm install` or `yarn`
+- `npm start` or `yarn start`

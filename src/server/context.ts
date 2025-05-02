@@ -1,12 +1,16 @@
-import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { validateSessionToken } from "@/server/auth";
 import { User, Game, db, room_members, games, rooms, Room } from "@/server/db";
+import {
+  FetchCreateContextFn,
+  FetchCreateContextFnOptions,
+} from "@trpc/server/adapters/fetch";
 import { eq } from "drizzle-orm";
 import { FastifyRequest, FastifyReply } from "fastify";
+import { AppRouter } from "./trpc/router";
 
 export type Context = {
-  req: FastifyRequest;
-  res: FastifyReply;
+  request: unknown;
+  responseHeaders: unknown;
   session: UserSession;
 };
 
@@ -16,18 +20,22 @@ export type UserSession = {
   game: Game | null;
 };
 
-export async function createContext({ req, res }: CreateFastifyContextOptions) {
+export async function createContext({
+  req,
+  resHeaders,
+}: FetchCreateContextFnOptions) {
   const session = await getUserSession(req);
-  return { session, req, res };
+  return { session, request: req, responseHeaders: resHeaders };
 }
 
 export async function getUserSession(
-  req: CreateFastifyContextOptions["req"],
+  req: FetchCreateContextFnOptions["req"],
 ): Promise<UserSession> {
   // Get session user if available
-  const cookieHeader = req.headers.cookie || "";
-  const cookies = cookieHeader.split("; ");
-  const sessionCookie = cookies.find((cookie) => cookie.startsWith("session="));
+  const sessionCookie = req.headers
+    .getSetCookie()
+    .flatMap((cookie) => cookie.split("; "))
+    .find((cookie) => cookie.startsWith("session="));
   const sessionToken = sessionCookie ? sessionCookie.split("=")[1] : "";
   const user = await validateSessionToken(sessionToken);
   let room: Room | null = null;

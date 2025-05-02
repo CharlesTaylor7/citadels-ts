@@ -1,4 +1,2 @@
-/node_modules/
-/.react-router/
-/build/
-.yarn/
+node_modules
+.yarn

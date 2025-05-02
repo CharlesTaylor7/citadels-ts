@@ -2,9 +2,9 @@
  * TypeScript port of the Citadels characters data
  * Converted from Rust implementation
  */
-import { ActionTag } from "@/game/actions";
-import { RoleData } from "@/game/roles";
-import { CARD_SUIT } from "@/game/types";
+import { ActionTag } from "@/server/game/actions";
+import { RoleData } from "@/server/game/roles";
+import { CARD_SUIT } from "@/server/game/types";
 
 /**
  * All character roles in the game

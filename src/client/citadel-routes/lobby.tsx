@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
 import { db, rooms, users, room_members, games, Room } from "@/server/db";
-import { useTRPC } from "@/trpc";
+import { useTRPC } from "@/server/trpc";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Lobby() {

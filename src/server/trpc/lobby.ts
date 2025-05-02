@@ -3,10 +3,10 @@ import { t as trpc } from ".";
 import { db, rooms, users, room_members, games } from "@/server/db";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { GameConfigUtils } from "@/game/lobby";
-import { createGame } from "@/game/game-state";
-import { newSeed } from "@/game/random";
-import { Action } from "@/game/actions";
+import { GameConfigUtils } from "@/server/game/lobby";
+import { createGame } from "@/server/game/game-state";
+import { newSeed } from "@/server/game/random";
+import { Action } from "@/server/game/actions";
 
 function action(action: Action): Action {
   return action;
