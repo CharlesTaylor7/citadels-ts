@@ -1,6 +1,10 @@
 # Shortlist   
 - [x] Replacement prng
+- [ ] Navbar
 - [ ] Fixup lobby
+    - [x] can create room
+    - [ ] Fixup sessions
+    -  
 - [ ] Websocket for rooms
 - [ ] Github action to build docker image
 - [ ] Deploy from docker image

@@ -8,30 +8,10 @@ import { PlayerId } from "./types";
 import { ROLES } from "./characters";
 import { newSeed, Seed, shuffle } from "./random";
 
-/**
- * Represents a player in the game
- */
 export interface LobbyMember {
   id: PlayerId;
   name: string;
 }
-
-/**
- * Utility functions for Player
- */
-export const PlayerUtils = {
-  /**
-   * Create a demo player
-   * @param name The player's name
-   * @returns A new player object
-   */
-  demo(name: string): LobbyMember {
-    return {
-      id: name,
-      name: name,
-    };
-  },
-};
 
 export interface GameConfig {
   players: LobbyMember[];
@@ -55,7 +35,7 @@ export function demo(count: number): GameConfig {
     rngSeed: newSeed(),
     config: GameConfigUtils.default(),
     players: players.slice(0, count).map((p, i) => ({
-      id: `${i + 1}`,
+      id: i + 1,
       name: p,
     })),
   };

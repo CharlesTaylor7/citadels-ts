@@ -25,8 +25,8 @@ export function systemRandom(max: number): number {
   return crypto.randomInt(max);
 }
 
-type Seed = number;
-type PRNG = RandomGenerator;
+export type Seed = number;
+export type PRNG = RandomGenerator;
 export function newSeed(): Seed {
   return crypto.randomInt(2 ** 48 - 1);
 }

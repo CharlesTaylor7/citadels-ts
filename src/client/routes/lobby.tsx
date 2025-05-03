@@ -1,63 +1,41 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { trpc } from "@/client/router";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-export default function Lobby() {
-  const [isLoading, setIsLoading] = useState(false);
-  const userQuery = useQuery(['auth.me'], () => trpc.auth.me.query());
-  const lobbyQuery = useQuery(['lobby.rooms'], () => trpc.lobby.rooms.query());
-  
-  const user = userQuery.data;
+export const Route = createFileRoute("/lobby")({
+  component: LobbyComponent,
+});
+
+function LobbyComponent() {
+  const userQuery = useQuery(trpc.auth.me.queryOptions());
+  const lobbyQuery = useQuery(trpc.lobby.rooms.queryOptions());
+
+  const user = userQuery.data?.user;
   const rooms = lobbyQuery.data || [];
-  const userRoom = rooms.find(r => r.members.some(m => m.id === user?.id));
+  const userRoom = rooms.find((r) => r.members.some((m) => m.id === user?.id));
 
-  const handleStartGame = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      await trpc.lobby.startGame.mutate();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCloseRoom = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      await trpc.lobby.closeRoom.mutate({ roomId });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLeaveRoom = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      await trpc.lobby.leaveRoom.mutate({ roomId });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const startGameMutation = useMutation(trpc.lobby.startGame.mutationOptions());
+  const closeRoomMutation = useMutation(trpc.lobby.closeRoom.mutationOptions());
+  const leaveRoomMutation = useMutation(trpc.lobby.leaveRoom.mutationOptions());
+  const createRoomMutation = useMutation(
+    trpc.lobby.createRoom.mutationOptions(),
+  );
+  const joinRoomMutation = useMutation(trpc.lobby.joinRoom.mutationOptions());
   return (
     <div className="container mx-auto p-4">
       <div className="navbar bg-base-100 rounded-box shadow-sm mb-6">
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Game Lobby</h1>
         </div>
-        <div className="flex-none gap-2">
-          <button onClick={placeholder} className="btn btn-error btn-sm">
-            Logout
-          </button>
-        </div>
       </div>
 
       <div className="mb-6">
         <button
-          onClick={placeholder}
-          disabled={isLoading || userRoom !== null}
+          onClick={() => createRoomMutation.mutate()}
+          disabled={createRoomMutation.isPending || userRoom != null}
           className="btn btn-primary"
         >
-          {isLoading ? "Creating..." : "Create Room"}
+          {createRoomMutation.isPending ? "Creating..." : "Create Room"}
         </button>
       </div>
 
@@ -88,35 +66,35 @@ export default function Lobby() {
             return (
               <div
                 key={room.id}
-                className={`card ${room.members.some(m => m.id === user?.id) ? "bg-base-200" : "bg-base-100"} shadow-md relative`}
+                className={`card ${room.members.some((m) => m.id === user?.id) ? "bg-base-200" : "bg-base-100"} shadow-md relative`}
               >
                 <div className="card-body">
-                  {room.members.some(m => m.id === user?.id) && (
+                  {room.members.some((m) => m.id === user?.id) && (
                     <div className="absolute top-2 right-2 flex gap-2">
-                      {room.gameStarted ? (
+                      {room.gameId ? (
                         <Link
                           to={`/game/${room.id}`}
                           className="btn btn-primary btn-sm"
                         >
                           Continue Game
                         </Link>
-                      ) : room.members.find(m => m.id === user?.id)?.owner ? (
+                      ) : room.members.find((m) => m.id === user?.id)?.owner ? (
                         <>
                           <button
-                            onClick={() => handleStartGame(room.id)}
-                            disabled={isLoading || room.playerCount < 2}
-                            className="btn btn-success btn-sm"
-                            title={
-                              room.playerCount < 2
-                                ? "Need at least 2 players"
-                                : "Start the game"
+                            onClick={() => startGameMutation.mutate()}
+                            disabled={
+                              startGameMutation.isPending ||
+                              room.members.length < 2
                             }
+                            className="btn btn-success btn-sm"
                           >
                             Start Game
                           </button>
                           <button
-                            onClick={() => handleCloseRoom(room.id)}
-                            disabled={isLoading}
+                            onClick={() =>
+                              closeRoomMutation.mutate({ roomId: room.id })
+                            }
+                            disabled={closeRoomMutation.isPending}
                             className="btn btn-error btn-sm"
                           >
                             Close
@@ -124,8 +102,10 @@ export default function Lobby() {
                         </>
                       ) : (
                         <button
-                          onClick={() => handleLeaveRoom(room.id)}
-                          disabled={isLoading}
+                          onClick={() =>
+                            leaveRoomMutation.mutate({ roomId: room.id })
+                          }
+                          disabled={leaveRoomMutation.isPending}
                           className="btn btn-warning btn-sm"
                         >
                           Leave
@@ -135,7 +115,7 @@ export default function Lobby() {
                   )}
 
                   <div className="mb-2">
-                    {room.gameStarted && (
+                    {room.gameId && (
                       <div className="mb-2">
                         <div className="badge badge-lg badge-primary">
                           Game in progress
@@ -163,20 +143,22 @@ export default function Lobby() {
                   </div>
 
                   <div className="card-actions justify-end">
-                    {room.gameStarted ? (
+                    {room.gameId ? (
                       <div className="w-full text-center text-sm text-gray-500">
                         Game already in progress
                       </div>
                     ) : (
                       <button
-                        onClick={placeholder}
-                        disabled={
-                          isLoading ||
-                          (userRoom !== null && userRoom !== room.id)
+                        onClick={() =>
+                          joinRoomMutation.mutate({ roomId: room.id })
                         }
-                        className={`btn ${userRoom !== null && userRoom !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
+                        disabled={
+                          joinRoomMutation.isPending ||
+                          (userRoom !== null && userRoom.id !== room.id)
+                        }
+                        className={`btn ${userRoom !== null && userRoom.id !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
                       >
-                        {userRoom !== null && userRoom !== room.id
+                        {userRoom !== null && userRoom.id !== room.id
                           ? "Already in another room"
                           : "Join Room"}
                       </button>

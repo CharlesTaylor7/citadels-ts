@@ -9,8 +9,9 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginComponent() {
-  const [error, setError] = useState<string>();
   const loginMutation = useMutation(trpc.auth.login.mutationOptions());
+  const error = loginMutation.error;
+  console.log(error);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -18,15 +19,8 @@ function LoginComponent() {
     const formData = new FormData(e.currentTarget);
     const username = formData.get("username");
     const password = formData.get("password");
-
-    // Validate inputs
-    if (typeof username !== "string" || typeof password !== "string") {
-      setError("Username and password are required");
-      return;
-    }
-
     await loginMutation.mutateAsync({ username, password });
-    navigate("/lobby");
+    navigate({ to: "/lobby" });
   };
 
   return (

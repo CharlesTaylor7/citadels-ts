@@ -7,7 +7,7 @@ import { GameConfigUtils } from "@/server/game/lobby";
 import { createGame } from "@/server/game/game-state";
 import { newSeed } from "@/server/game/random";
 
-type Player = { id: string; name: string; owner: boolean };
+type Player = { id: number; name: string; owner: boolean };
 type Room = {
   id: string;
   name: string;
