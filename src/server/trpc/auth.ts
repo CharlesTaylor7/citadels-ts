@@ -22,7 +22,7 @@ const signinProcedure = anonymousProcedure.input(
 
 export const authRouter = router({
   me: loggedInProcedure.query(({ ctx }) => {
-    return ctx.userId;
+    return { userId: ctx.userId};
   }),
   logout: loggedInProcedure.mutation(
     async ({ ctx: { userId, responseHeaders } }) => {
@@ -126,6 +126,6 @@ export const authRouter = router({
       );
       responseHeaders.set("Location", "/lobby");
       return { userId: user.id };
-    }
+    },
   ),
 });

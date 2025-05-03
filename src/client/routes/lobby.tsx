@@ -10,9 +10,9 @@ function LobbyComponent() {
   const userQuery = useQuery(trpc.auth.me.queryOptions());
   const lobbyQuery = useQuery(trpc.lobby.rooms.queryOptions());
 
-  const user = userQuery.data?.user;
+  const userId = userQuery.data?.userId;
   const rooms = lobbyQuery.data || [];
-  const userRoom = rooms.find((r) => r.members.some((m) => m.id === user?.id));
+  const userRoom = rooms.find((r) => r.members.some((m) => m.id === userId));
 
   const startGameMutation = useMutation(trpc.lobby.startGame.mutationOptions());
   const closeRoomMutation = useMutation(trpc.lobby.closeRoom.mutationOptions());
@@ -65,10 +65,10 @@ function LobbyComponent() {
             return (
               <div
                 key={room.id}
-                className={`card ${room.members.some((m) => m.id === user?.id) ? "bg-base-200" : "bg-base-100"} shadow-md relative`}
+                className={`card ${room.members.some((m) => m.id === userId) ? "bg-base-200" : "bg-base-100"} shadow-md relative`}
               >
                 <div className="card-body">
-                  {room.members.some((m) => m.id === user?.id) && (
+                  {room.members.some((m) => m.id === userId) && (
                     <div className="absolute top-2 right-2 flex gap-2">
                       {room.gameId ? (
                         <Link
@@ -77,7 +77,7 @@ function LobbyComponent() {
                         >
                           Continue Game
                         </Link>
-                      ) : room.members.find((m) => m.id === user?.id)?.owner ? (
+                      ) : room.members.find((m) => m.id === userId)?.owner ? (
                         <>
                           <button
                             onClick={() => startGameMutation.mutate()}
@@ -89,27 +89,8 @@ function LobbyComponent() {
                           >
                             Start Game
                           </button>
-                          <button
-                            onClick={() =>
-                              closeRoomMutation.mutate({ roomId: room.id })
-                            }
-                            disabled={closeRoomMutation.isPending}
-                            className="btn btn-error btn-sm"
-                          >
-                            Close
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() =>
-                            leaveRoomMutation.mutate({ roomId: room.id })
-                          }
-                          disabled={leaveRoomMutation.isPending}
-                          className="btn btn-warning btn-sm"
-                        >
-                          Leave
-                        </button>
-                      )}
+                                                  </>
+                      ) }
                     </div>
                   )}
 
@@ -146,20 +127,22 @@ function LobbyComponent() {
                       <div className="w-full text-center text-sm text-gray-500">
                         Game already in progress
                       </div>
-                    ) : (
+                    ) 
+                    : userRoom?.id === room.id ?
+                        (<button
+                          onClick={() => leaveRoomMutation.mutate({ roomId: room.id }) }
+                          disabled={leaveRoomMutation.isPending}
+                          className="btn btn-warning btn-sm"
+                        >
+                          Leave
+                        </button>)
+                    : (
                       <button
-                        onClick={() =>
-                          joinRoomMutation.mutate({ roomId: room.id })
-                        }
-                        disabled={
-                          joinRoomMutation.isPending ||
-                          (userRoom !== null && userRoom.id !== room.id)
-                        }
-                        className={`btn ${userRoom !== null && userRoom.id !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
+                        onClick={() => joinRoomMutation.mutate({ roomId: room.id }) }
+                        disabled={ joinRoomMutation.isPending }
+                        className="btn btn-primary "
                       >
-                        {userRoom !== null && userRoom.id !== room.id
-                          ? "Already in another room"
-                          : "Join Room"}
+                        Join Room
                       </button>
                     )}
                   </div>

@@ -37,7 +37,6 @@ export async function validateSessionToken(
   token: string,
 ): Promise<number | null> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-  console.log({ token, sessionId });
   const db = await connect();
   const result = await db
     .select({ userId: users.id, session: sessions })
@@ -45,10 +44,9 @@ export async function validateSessionToken(
     .where(eq(sessions.id, sessionId))
     .leftJoin(users, eq(sessions.userId, users.id))
     .get();
-  console.log(result);
   if (!result) return null;
+
   const { userId, session } = result;
-  console.log(session);
   // expire old sessions
   if (Date.now() >= session.expiresAt.getTime()) {
     await db.delete(sessions).where(eq(sessions.id, session.id));

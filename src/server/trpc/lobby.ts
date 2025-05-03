@@ -12,8 +12,9 @@ type Player = { id: number; name: string; owner: boolean };
 type Room = {
   id: string;
   name: string;
-  members: Player[];
   gameId: number | null;
+  owner: Player;
+  members: Player[];
 };
 
 export const lobbyRouter = router({
