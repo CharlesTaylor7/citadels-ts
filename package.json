@@ -29,6 +29,7 @@
     "drizzle-orm": "^0.43.1",
     "mangata-prng-xoshiro": "^3.0.0",
     "prng-xoshiro": "^1.0.1",
+    "pure-rand": "^7.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",

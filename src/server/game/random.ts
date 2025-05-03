@@ -1,13 +1,10 @@
 //https://prng.di.unimi.it/
-//https://www.npmjs.com/package/prng-xoshiro
-
 import crypto from "node:crypto";
 import {
-  XoShiRo128StarStar,
-  XoShiRo256StarStar,
-  type Generator128,
-  type Generator256,
-} from "mangata-prng-xoshiro";
+  type RandomGenerator,
+  unsafeUniformIntDistribution,
+  xoroshiro128plus,
+} from "pure-rand";
 
 /**
  * Shuffle an array in-place
@@ -15,35 +12,59 @@ import {
  * @param rng Random number generator
  */
 export function shuffle<T>(array: T[], rng: RNG): void {
-  for (let i = array.length - 1; i > 0; i--) {
+  const n = array.length;
+
+  for (let i = n - 1; i > 0; i--) {
     const j = rng(i + 1);
     [array[i], array[j]] = [array[j], array[i]];
   }
 }
-export type RNG = (max: number) => number;
+export type RNG = (bound: number) => number;
 
 export function systemRandom(max: number): number {
   return crypto.randomInt(max);
 }
 
-type Seed = bigint;
-type PRNG = Generator256;
+type Seed = number;
+type PRNG = RandomGenerator;
 export function newSeed(): Seed {
-  return BigInt("0x" + crypto.randomBytes(8).toString("hex"));
+  return crypto.randomInt(2 ** 48 - 1);
 }
 
 export function newPrng(seed: Seed): PRNG {
-  return new XoShiRo256StarStar(seed);
+  return xoroshiro128plus(seed);
 }
 
 export function asRng(prng: PRNG): RNG {
-  return (n) => prng.nextBigInt(BigInt(n));
+  return (bound) => unsafeUniformIntDistribution(0, bound - 1, prng);
 }
 
-const prng = newPrng(newSeed());
-const rng = asRng(prng);
-console.log(prng);
-console.log(rng(10));
-console.log(rng(10));
-console.log(rng(10));
-console.log(rng(10));
+export function deserializePrng(serializedRng: string): PRNG {
+  const instance = xoroshiro128plus(0);
+  Object.assign(instance, JSON.parse(serializedRng));
+  return instance;
+}
+
+export function serializePrng(prng: PRNG) {
+  return JSON.stringify(prng);
+}
+
+const PRNG_CONSTRUCTOR = "XoroShiro128Plus";
+
+export function prngReplacer(key: string, value: unknown) {
+  if (value?.constructor.name === PRNG_CONSTRUCTOR) {
+    // eslint-disable-next-line
+    (value as any).__type = PRNG_CONSTRUCTOR;
+    return value;
+  }
+  return value;
+}
+
+export function prngReviver(key: string, value?: { __type?: string }) {
+  if (value?.__type === PRNG_CONSTRUCTOR) {
+    const instance = xoroshiro128plus(0);
+    Object.assign(instance, value);
+    return instance;
+  }
+  return value;
+}
