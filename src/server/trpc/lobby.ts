@@ -7,7 +7,41 @@ import { GameConfigUtils } from "@/server/game/lobby";
 import { createGame } from "@/server/game/game-state";
 import { newSeed } from "@/server/game/random";
 
+type Player = { id: string; name: string; owner: boolean };
+type Room = {
+  name: string;
+  members: Player[];
+};
 export const lobbyRouter = trpc.router({
+  rooms: trpc.procedure.query<Room[]>(async ({ ctx: { session, db } }) => {
+    const roomsWithMembers = await db
+      .select({
+        roomId: rooms.id,
+        roomName: rooms.name,
+        playerId: room_members.playerId,
+        owner: room_members.owner,
+        playerName: users.username,
+      })
+      .from(room_members)
+      .innerJoin(rooms, eq(room_members.roomId, rooms.id))
+      .innerJoin(users, eq(room_members.playerId, users.id))
+      .all();
+
+    const roomMap = new Map<string, Room>();
+    for (const row of roomsWithMembers) {
+      let record = roomMap.get(row.roomId);
+      if (!record) {
+        record = { name: row.roomName, members: [] };
+        roomMap.set(row.roomId, record);
+      }
+      record.members.push({
+        id: row.playerId.toString(),
+        name: row.playerName,
+        owner: row.owner,
+      });
+    }
+    return Array.from(roomMap.values());
+  }),
   createRoom: trpc.procedure.mutation(async ({ ctx: { session, db } }) => {
     if (!session.user)
       return { success: false, error: "User not authenticated" };
@@ -129,13 +163,14 @@ export const lobbyRouter = trpc.router({
     };
 
     const initialState = createGame(gameStartAction);
-    const [game] = await db
+    const game = await db
       .insert(games)
       .values({
         state: JSON.stringify(initialState),
         actions: JSON.stringify([gameStartAction]),
       })
-      .returning({ id: games.id });
+      .returning({ id: games.id })
+      .get();
 
     await db
       .update(rooms)
@@ -158,8 +193,8 @@ export const lobbyRouter = trpc.router({
         .where(
           and(
             eq(room_members.roomId, input.roomId),
-            eq(room_members.playerId, session.user.id),
-          ),
+            eq(room_members.playerId, session.user.id)
+          )
         )
         .get();
 
@@ -220,8 +255,8 @@ export const lobbyRouter = trpc.router({
         .where(
           and(
             eq(room_members.playerId, session.user?.id),
-            eq(room_members.roomId, input.roomId),
-          ),
+            eq(room_members.roomId, input.roomId)
+          )
         )
         .get();
 

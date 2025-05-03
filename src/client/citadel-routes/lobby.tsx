@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
-import { db, rooms, users, room_members, games, Room } from "@/server/schema";
-import { useTRPC } from "@/server/trpc";
+import { rooms, users, room_members, games, Room } from "@/server/schema";
 import { useQuery } from "@tanstack/react-query";
+import { trpc } from "@/client/router";
 
 export default function Lobby() {
-  const trpc = useTRPC();
   const userQuery = useQuery(trpc.auth.me.query());
   const lobbyQuery = useQuery(trpc.lobby.rooms.query());
   const placeholder = (e: unknown) => console.log(e);
