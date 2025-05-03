@@ -1,3 +1,3 @@
-import { t } from ".";
+import { router, loggedInProcedure } from ".";
 
-export const gameRouter = t.router({});
+export const gameRouter = router({});

@@ -1,11 +1,11 @@
-import { t } from "./index";
+import { router } from "./index";
 import { lobbyRouter } from "./lobby";
 import { gameRouter } from "./game";
 import { authRouter } from "./auth";
 import { dashboardRouter } from "./dashboard";
 
 // Merge all routers
-export const appRouter = t.router({
+export const appRouter = router({
   lobby: lobbyRouter,
   game: gameRouter,
   auth: authRouter,

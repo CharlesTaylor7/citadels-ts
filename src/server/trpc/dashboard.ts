@@ -1,4 +1,4 @@
-import { t } from ".";
+import { router, anonymousProcedure } from ".";
 
 const POSTS = [
   { id: "1", title: "First post" },
@@ -13,12 +13,12 @@ const POSTS = [
   { id: "10", title: "Tenth post" },
 ];
 
-export const dashboardRouter = t.router({
-  posts: t.procedure.query(async (_) => {
+export const dashboardRouter = router({
+  posts: anonymousProcedure.query(async (_) => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     return POSTS;
   }),
-  post: t.procedure.input(String).query(async (req) => {
+  post: anonymousProcedure.input(String).query(async (req) => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return POSTS.find((p) => p.id === req.input);
   }),

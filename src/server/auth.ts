@@ -20,7 +20,7 @@ export function generateSessionToken(): string {
 
 export async function createSession(
   token: string,
-  userId: number
+  userId: number,
 ): Promise<Session> {
   const db = await connect();
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
@@ -34,19 +34,21 @@ export async function createSession(
 }
 
 export async function validateSessionToken(
-  token: string
-): Promise<User | null> {
+  token: string,
+): Promise<number | null> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
+  console.log({ token, sessionId });
   const db = await connect();
   const result = await db
-    .select({ user: users, session: sessions })
+    .select({ userId: users.id, session: sessions })
     .from(sessions)
     .where(eq(sessions.id, sessionId))
-    .leftJoin(users, eq(sessions.userId, users.id));
-  if (result.length < 1) {
-    return null;
-  }
-  const { user, session } = result[0];
+    .leftJoin(users, eq(sessions.userId, users.id))
+    .get();
+  console.log(result);
+  if (!result) return null;
+  const { userId, session } = result;
+  console.log(session);
   // expire old sessions
   if (Date.now() >= session.expiresAt.getTime()) {
     await db.delete(sessions).where(eq(sessions.id, session.id));
@@ -62,7 +64,7 @@ export async function validateSessionToken(
       })
       .where(eq(sessions.id, session.id));
   }
-  return user;
+  return userId;
 }
 
 export async function invalidateSession(sessionId: string): Promise<void> {
@@ -73,13 +75,6 @@ export async function invalidateSession(sessionId: string): Promise<void> {
 export async function invalidateAllSessions(userId: number): Promise<void> {
   const db = await connect();
   await db.delete(sessions).where(eq(sessions.userId, userId));
-}
-
-export async function verifyPassword(
-  password: string,
-  hashedPassword: string
-): Promise<boolean> {
-  return hashedPassword === hashedPassword;
 }
 
 export type SessionResult = {
@@ -98,13 +93,13 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPasswordHash(
   hash: string,
-  password: string
+  password: string,
 ): Promise<boolean> {
   return await verify(hash, password);
 }
 
 export async function verifyPasswordStrength(
-  password: string
+  password: string,
 ): Promise<boolean> {
   if (password.length < 8 || password.length > 255) {
     return false;
@@ -112,7 +107,7 @@ export async function verifyPasswordStrength(
   const hash = encodeHexLowerCase(sha1(new TextEncoder().encode(password)));
   const hashPrefix = hash.slice(0, 5);
   const response = await fetch(
-    `https://api.pwnedpasswords.com/range/${hashPrefix}`
+    `https://api.pwnedpasswords.com/range/${hashPrefix}`,
   );
   const data = await response.text();
   const items = data.split("\n");

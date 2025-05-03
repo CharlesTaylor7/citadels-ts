@@ -1,4 +1,4 @@
-import { t } from ".";
+import { router, loggedInProcedure, anonymousProcedure } from ".";
 import { z } from "zod";
 import { users } from "@/server/schema";
 import { eq } from "drizzle-orm";
@@ -10,38 +10,35 @@ import {
   verifyPasswordStrength,
   verifyPasswordHash,
 } from "@/server/auth";
+import { TRPCError } from "@trpc/server";
 
-type Me = {
-  id: string;
-  name: string;
-  roomId?: string;
-  gameId?: string;
-};
-export const authRouter = t.router({
-  logout: t.procedure.mutation(
-    async ({ ctx: { session, responseHeaders } }) => {
+// shared between signup and login
+const signinProcedure = anonymousProcedure.input(
+  z.object({
+    username: z.string().min(8),
+    password: z.string().min(8),
+  })
+);
+
+export const authRouter = router({
+  me: loggedInProcedure.query(({ ctx }) => {
+    return ctx.userId;
+  }),
+  logout: loggedInProcedure.mutation(
+    async ({ ctx: { userId, responseHeaders } }) => {
       // expire cookie
       responseHeaders.set(
         "Set-Cookie",
         "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly"
       );
-      if (!session.user) return;
-      await invalidateAllSessions(session.user.id);
+      if (!userId) return;
+      // clear database entry
+      await invalidateAllSessions(userId);
     }
   ),
 
-  me: t.procedure.query(({ ctx }) => {
-    return ctx.session;
-  }),
-
-  signup: t.procedure
-    .input(
-      z.object({
-        username: z.string().min(8),
-        password: z.string().min(8),
-      })
-    )
-    .mutation(async ({ input, ctx: { db, responseHeaders } }) => {
+  signup: signinProcedure.mutation(
+    async ({ input, ctx: { db, responseHeaders } }) => {
       // Check if username already exists
       const existingUser = await db
         .select()
@@ -49,17 +46,19 @@ export const authRouter = t.router({
         .where(eq(users.username, input.username))
         .get();
 
-      if (existingUser) {
-        return { success: false, error: "Username already taken" };
-      }
+      if (existingUser)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Username is taken",
+        });
 
       // Verify password strength
       const isStrongPassword = await verifyPasswordStrength(input.password);
       if (!isStrongPassword) {
-        return {
-          success: false,
-          error: "Password is too weak or has been compromised",
-        };
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Password is too weak or has been compromised",
+        });
       }
 
       // Hash password and create user
@@ -82,18 +81,14 @@ export const authRouter = t.router({
         "Set-Cookie",
         `session=${token}; Path=/; HttpOnly; SameSite=Lax`
       );
+      responseHeaders.set("Location", "/lobby");
 
-      return { success: true };
-    }),
+      return { userId: result.id };
+    }
+  ),
 
-  login: t.procedure
-    .input(
-      z.object({
-        username: z.string().min(8),
-        password: z.string().min(8),
-      })
-    )
-    .mutation(async ({ input, ctx: { db, responseHeaders } }) => {
+  login: signinProcedure.mutation(
+    async ({ input, ctx: { db, responseHeaders } }) => {
       // Find user
       const user = await db
         .select()
@@ -102,7 +97,10 @@ export const authRouter = t.router({
         .get();
 
       if (!user) {
-        return { success: false, error: "Invalid username or password" };
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid username or password",
+        });
       }
 
       // Verify password
@@ -111,9 +109,11 @@ export const authRouter = t.router({
         input.password
       );
 
-      if (!isValidPassword) {
-        return { success: false, error: "Invalid username or password" };
-      }
+      if (!isValidPassword)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid username or password",
+        });
 
       // Create session
       const token = generateSessionToken();
@@ -124,7 +124,8 @@ export const authRouter = t.router({
         "Set-Cookie",
         `session=${token}; Path=/; HttpOnly; SameSite=Lax`
       );
-
-      return { success: true };
-    }),
+      responseHeaders.set("Location", "/lobby");
+      return { userId: user.id };
+    }
+  ),
 });

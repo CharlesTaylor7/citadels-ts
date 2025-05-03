@@ -11,8 +11,14 @@ export async function connect() {
       url: `file:${volume}/sqlite.db`,
     });
 
-    db = drizzle(client);
-    await migrate(db, { migrationsFolder: "migrations" });
+    const pool = drizzle(client);
+    try {
+      await migrate(pool, { migrationsFolder: "drizzle" });
+    } catch (e) {
+      console.error(e);
+      process.exit(1);
+    }
+    db = pool;
   }
   return db;
 }
