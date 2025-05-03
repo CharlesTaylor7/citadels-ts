@@ -7,6 +7,7 @@ import { GameConfigUtils } from "@/server/game/lobby";
 import { createGame } from "@/server/game/game-state";
 import { newSeed } from "@/server/game/random";
 import { tracked, TRPCError } from "@trpc/server";
+import { EventEmitter, on } from "node:events";
 
 const playerSchema = z.object({
   id: z.number(),
@@ -25,21 +26,19 @@ const roomSchema = z.object({
 export type Player = z.infer<typeof playerSchema>;
 export type Room = z.infer<typeof roomSchema>;
 
-let lastEventId = 0;
-const events: Event[] = [];
-type Event = { eventId: number; roomId: string };
+const eventEmitter = new EventEmitter();
 
 function publishRoomEvent(roomId: string) {
-  events.push({ eventId: lastEventId++, roomId });
+  eventEmitter.emit("room_update", roomId);
 }
 
 export const lobbyRouter = router({
   subscribe: loggedInProcedure.subscription(async function* () {
-    while (true) {
-      const event = events.shift();
-      if (event) yield tracked(event.eventId.toString(), event);
+    for await (const roomId of on(eventEmitter, "room_update")) {
+      yield roomId;
     }
   }),
+
   rooms: loggedInProcedure
     .output(roomSchema.array())
     .query(async ({ ctx: { db } }) => {

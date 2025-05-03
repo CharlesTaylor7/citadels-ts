@@ -8,9 +8,14 @@ export const Route = createFileRoute("/lobby")({
 });
 
 function LobbyComponent() {
-  const subscription = useSubscription(
-    trpc.lobby.subscribe.subscriptionOptions(),
-  );
+  const queryClient = useQueryClient();
+  useSubscription({
+    ...trpc.lobby.subscribe.subscriptionOptions(),
+    onData: () =>
+      queryClient.invalidateQueries({
+        queryKey: trpc.lobby.rooms.queryKey(),
+      }),
+  });
 
   const userQuery = useQuery(trpc.auth.me.queryOptions());
   const lobbyQuery = useQuery(trpc.lobby.rooms.queryOptions());
@@ -19,36 +24,17 @@ function LobbyComponent() {
   const rooms = lobbyQuery.data || [];
   const userRoom = rooms.find((r) => r.members.some((m) => m.id === userId));
 
-  const queryClient = useQueryClient();
-
   const startGameMutation = useMutation({
     ...trpc.lobby.startGame.mutationOptions(),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: trpc.lobby.rooms.queryKey(),
-      }),
   });
   const leaveRoomMutation = useMutation({
     ...trpc.lobby.leaveRoom.mutationOptions(),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: trpc.lobby.rooms.queryKey(),
-      }),
   });
-  console.log(trpc.lobby.createRoom.mutationOptions());
   const createRoomMutation = useMutation({
     ...trpc.lobby.createRoom.mutationOptions(),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: trpc.lobby.rooms.queryKey(),
-      }),
   });
   const joinRoomMutation = useMutation({
     ...trpc.lobby.joinRoom.mutationOptions(),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: trpc.lobby.rooms.queryKey(),
-      }),
   });
   return (
     <>
