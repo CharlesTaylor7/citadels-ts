@@ -6,8 +6,8 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
-import { Spinner } from "./-components/spinner";
+import { useQuery } from "@tanstack/react-query";
+import { trpc } from "@/client/router";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import type { AppRouter } from "@/server/trpc/router";
 import type { QueryClient } from "@tanstack/react-query";
@@ -23,59 +23,89 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootComponent() {
   const isFetching = useRouterState({ select: (s) => s.isLoading });
+  const userQuery = useQuery(trpc.auth.me.queryOptions());
+  const user = userQuery.data?.user;
 
   return (
-    <>
-      <div className={`min-h-screen flex flex-col`}>
-        <div className={`flex items-center border-b gap-2`}>
-          <h1 className={`text-3xl p-2`}>With tRPC + TanStack Query</h1>
-          {/* Show a global spinner when the router is transitioning */}
-          <div
-            className={`text-3xl duration-300 delay-0 opacity-0 ${
-              isFetching ? ` duration-1000 opacity-40` : ""
-            }`}
-          >
-            <Spinner />
+    <div className="min-h-screen flex flex-col bg-base-100">
+      <nav className="navbar bg-base-200 shadow-lg">
+        <div className="container mx-auto">
+          <div className="flex-1">
+            <Link to="/" className="btn btn-ghost text-xl">
+              Citadels
+            </Link>
           </div>
-        </div>
-        <div className={`flex-1 flex`}>
-          <div className={`divide-y w-56`}>
-            {(
-              [
-                ["/", "Home"],
-                ["/dashboard", "Dashboard"],
-              ] as const
-            ).map(([to, label]) => {
-              return (
-                <div key={to}>
+          <div className="flex-none gap-2">
+            <ul className="menu menu-horizontal px-1 gap-2">
+              <li>
+                <Link
+                  to="/lobby"
+                  className="btn btn-ghost btn-sm"
+                  activeProps={{ className: "btn-active" }}
+                >
+                  Lobby
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/game"
+                  className="btn btn-ghost btn-sm"
+                  activeProps={{ className: "btn-active" }}
+                >
+                  Game
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/about"
+                  className="btn btn-ghost btn-sm"
+                  activeProps={{ className: "btn-active" }}
+                >
+                  About
+                </Link>
+              </li>
+              {user ? (
+                <>
+                  <li>
+                    <Link
+                      to="/profile"
+                      className="btn btn-ghost btn-sm"
+                      activeProps={{ className: "btn-active" }}
+                    >
+                      Profile
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/logout"
+                      className="btn btn-ghost btn-sm text-error"
+                    >
+                      Logout
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <li>
                   <Link
-                    to={to}
-                    activeOptions={
-                      {
-                        // If the route points to the root of it's parent,
-                        // make sure it's only active if it's exact
-                        // exact: to === '.',
-                      }
-                    }
-                    preload="intent"
-                    className={`block py-2 px-3 text-blue-700`}
-                    // Make "active" links bold
-                    activeProps={{ className: `font-bold` }}
+                    to="/login"
+                    className="btn btn-ghost btn-sm"
+                    activeProps={{ className: "btn-active" }}
                   >
-                    {label}
+                    Login
                   </Link>
-                </div>
-              );
-            })}
-          </div>
-          <div className={`flex-1 border-l border-gray-200`}>
-            {/* Render our first route match */}
-            <Outlet />
+                </li>
+              )}
+            </ul>
           </div>
         </div>
-      </div>
-      <TanStackRouterDevtools position="bottom-left" />
-      <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-    </>
+      </nav>
+
+      <main className="flex-1 container mx-auto p-4">
+        <Outlet />
+      </main>
+
+      <TanStackRouterDevtools />
+      <ReactQueryDevtools />
+    </div>
   );
 }
