@@ -3,15 +3,6 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/client/router";
 
-type RoomView = {
-  id: string;
-  name: string;
-  gameStarted?: boolean;
-  playerCount: number;
-  playerUsernames: string[];
-  ownerUsername: string;
-};
-
 export default function Lobby() {
   const [isLoading, setIsLoading] = useState(false);
   const userQuery = useQuery(['auth.me'], () => trpc.auth.me.query());

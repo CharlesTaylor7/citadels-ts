@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { redirect, useLoaderData, useParams, Link } from "react-router";
 
-import { db, games, rooms, users, room_members } from "@/server/db";
+import { games, rooms, users, room_members } from "@/server/schema";
 import { and, eq } from "drizzle-orm";
 import { getSession } from "@/server/auth";
 export async function loader({
