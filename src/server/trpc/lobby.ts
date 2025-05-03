@@ -8,51 +8,70 @@ import { createGame } from "@/server/game/game-state";
 import { newSeed } from "@/server/game/random";
 import { TRPCError } from "@trpc/server";
 
-type Player = { id: number; name: string; owner: boolean };
-type Room = {
-  id: string;
-  name: string;
-  gameId: number | null;
-  owner: Player;
-  members: Player[];
-};
+const playerSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  owner: z.boolean(),
+});
+
+const roomSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  gameId: z.number().nullable(),
+  owner: playerSchema,
+  members: z.array(playerSchema),
+});
+
+type Player = z.infer<typeof playerSchema>;
+type Room = z.infer<typeof roomSchema>;
 
 export const lobbyRouter = router({
-  rooms: loggedInProcedure.query<Room[]>(async ({ ctx: { db } }) => {
-    const roomsWithMembers = await db
-      .select({
-        roomId: rooms.id,
-        gameId: rooms.gameId,
-        roomName: rooms.name,
-        playerId: room_members.playerId,
-        owner: room_members.owner,
-        playerName: users.username,
-      })
-      .from(room_members)
-      .innerJoin(rooms, eq(room_members.roomId, rooms.id))
-      .innerJoin(users, eq(room_members.playerId, users.id))
-      .all();
+  rooms: loggedInProcedure
+    .output(roomSchema.array())
+    .query(async ({ ctx: { db } }) => {
+      const roomsWithMembers = await db
+        .select({
+          roomId: rooms.id,
+          gameId: rooms.gameId,
+          roomName: rooms.name,
+          playerId: room_members.playerId,
+          owner: room_members.owner,
+          playerName: users.username,
+        })
+        .from(room_members)
+        .innerJoin(rooms, eq(room_members.roomId, rooms.id))
+        .innerJoin(users, eq(room_members.playerId, users.id))
+        .all();
 
-    const roomMap = new Map<string, Room>();
-    for (const row of roomsWithMembers) {
-      let record = roomMap.get(row.roomId);
-      if (!record) {
-        record = {
-          id: row.roomId,
-          gameId: row.gameId,
-          name: row.roomName,
-          members: [],
-        };
-        roomMap.set(row.roomId, record);
+      const roomMap = new Map<string, Room>();
+      for (const row of roomsWithMembers) {
+        let record = roomMap.get(row.roomId);
+        if (!record) {
+          record = {
+            id: row.roomId,
+            gameId: row.gameId,
+            name: row.roomName,
+            // eslint-disable-next-line
+            owner: null as any,
+            members: [],
+          };
+          roomMap.set(row.roomId, record);
+        }
+        if (row.owner) {
+          record.owner = {
+            id: row.playerId,
+            name: row.playerName,
+            owner: row.owner,
+          };
+        }
+        record.members.push({
+          id: row.playerId,
+          name: row.playerName,
+          owner: row.owner,
+        });
       }
-      record.members.push({
-        id: row.playerId,
-        name: row.playerName,
-        owner: row.owner,
-      });
-    }
-    return Array.from(roomMap.values());
-  }),
+      return Array.from(roomMap.values());
+    }),
   createRoom: loggedInProcedure.mutation(async ({ ctx: { userId, db } }) => {
     // Check if user is already in any room
     const userRoomMembership = await db
@@ -189,8 +208,8 @@ export const lobbyRouter = router({
         .where(
           and(
             eq(room_members.roomId, input.roomId),
-            eq(room_members.playerId, userId),
-          ),
+            eq(room_members.playerId, userId)
+          )
         )
         .get();
 
@@ -254,8 +273,8 @@ export const lobbyRouter = router({
         .where(
           and(
             eq(room_members.playerId, userId),
-            eq(room_members.roomId, input.roomId),
-          ),
+            eq(room_members.roomId, input.roomId)
+          )
         )
         .get();
 
