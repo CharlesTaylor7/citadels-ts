@@ -1,120 +1,102 @@
 import { useState } from "react";
-import {
-  Form,
-  Link,
-  redirect,
-  useActionData,
-  useNavigation,
-} from "react-router";
-import { users, db } from "@/server/db";
-import { eq } from "drizzle-orm";
-import {
-  generateSessionToken,
-  createSession,
-  verifyPasswordHash,
-} from "@/server/auth";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { trpc } from "../router";
+import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
-export async function action({ request }: { request: Request }) {
-  const formData = await request.formData();
-  const username = formData.get("username");
-  const password = formData.get("password");
+export const Route = createFileRoute("/login")({
+  component: LoginComponent,
+});
 
-  // Validate inputs
-  if (typeof username !== "string" || typeof password !== "string") {
-    return { error: "Username and password are required" };
-  }
+function LoginComponent() {
+  const [error, setError] = useState<string>();
+  const loginMutation = useMutation(trpc.auth.login.mutationOptions());
+  const navigate = useNavigate();
 
-  // Find user by username
-  const user = await db
-    .select()
-    .from(users)
-    .where(eq(users.username, username))
-    .get();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get("username");
+    const password = formData.get("password");
 
-  if (!user) {
-    return { error: "Invalid username or password" };
-  }
+    // Validate inputs
+    if (typeof username !== "string" || typeof password !== "string") {
+      setError("Username and password are required");
+      return;
+    }
 
-  // Verify password
-  const passwordValid = await verifyPasswordHash(user.hashedPassword, password);
-  if (!passwordValid) {
-    return { error: "Invalid username or password" };
-  }
-
-  // Create session
-  const token = generateSessionToken();
-  await createSession(token, user.id);
-
-  // Create response with redirect and cookie
-  const headers = new Headers();
-  headers.append(
-    "Set-Cookie",
-    `session=${token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax`,
-  );
-  headers.append("Location", "/lobby");
-
-  return new Response(null, {
-    status: 302,
-    headers,
-  });
-}
-
-export default function Login() {
-  const actionData = useActionData<{ error?: string }>();
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state === "submitting";
+    await loginMutation.mutateAsync({ username, password });
+    navigate("/lobby");
+  };
 
   return (
-    <div className="max-w-md mx-auto p-5">
-      <h1 className="text-2xl font-bold mb-4">Login to Citadels</h1>
-
-      {actionData?.error && (
-        <div className="text-red-500 mb-3">{actionData.error}</div>
-      )}
-
-      <Form method="post">
-        <div className="mb-4">
-          <label htmlFor="username" className="block mb-1">
-            Username
-          </label>
-          <input
-            id="username"
-            name="username"
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{" "}
+            <Link
+              to="/signup"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              create a new account
+            </Link>
+          </p>
         </div>
 
-        <div className="mb-4">
-          <label htmlFor="password" className="block mb-1">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
-        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                </div>
+              </div>
+            </div>
+          )}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`w-full py-2.5 bg-green-500 text-white rounded ${isSubmitting ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
-        >
-          {isSubmitting ? "Logging in..." : "Login"}
-        </button>
-      </Form>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="username" className="sr-only">
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Username"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
+              />
+            </div>
+          </div>
 
-      <div className="mt-4 text-center">
-        <p>
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-green-500">
-            Sign Up
-          </Link>
-        </p>
+          <div>
+            <button
+              type="submit"
+              disabled={loginMutation.isPending}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              {loginMutation.isPending ? "Signing in..." : "Sign in"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
