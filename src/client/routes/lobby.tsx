@@ -1,12 +1,17 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { trpc } from "@/client/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSubscription } from "@trpc/tanstack-react-query";
 
 export const Route = createFileRoute("/lobby")({
   component: LobbyComponent,
 });
 
 function LobbyComponent() {
+  const subscription = useSubscription(
+    trpc.lobby.subscribe.subscriptionOptions(),
+  );
+
   const userQuery = useQuery(trpc.auth.me.queryOptions());
   const lobbyQuery = useQuery(trpc.lobby.rooms.queryOptions());
 

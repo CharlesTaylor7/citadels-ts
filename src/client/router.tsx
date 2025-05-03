@@ -4,7 +4,14 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import {
+  splitLink,
+  createTRPCClient,
+  httpBatchLink,
+  wsLink,
+  createWSClient,
+  httpSubscriptionLink,
+} from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { routeTree } from "@/client/route-tree";
 import type { AppRouter } from "@/server/trpc/router";
@@ -26,8 +33,13 @@ export const queryClient = new QueryClient({
   }),
 });
 
+const serverLink = splitLink<AppRouter>({
+  condition: (op) => op.type === "subscription",
+  true: httpSubscriptionLink({ url: "/trpc" }),
+  false: httpBatchLink({ url: "/trpc" }),
+});
 export const trpc = createTRPCOptionsProxy<AppRouter>({
-  client: createTRPCClient({ links: [httpBatchLink({ url: "/trpc" })] }),
+  client: createTRPCClient({ links: [serverLink] }),
   queryClient,
 });
 

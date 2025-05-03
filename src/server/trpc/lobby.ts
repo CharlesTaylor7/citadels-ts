@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { GameConfigUtils } from "@/server/game/lobby";
 import { createGame } from "@/server/game/game-state";
 import { newSeed } from "@/server/game/random";
-import { TRPCError } from "@trpc/server";
+import { tracked, TRPCError } from "@trpc/server";
 
 const playerSchema = z.object({
   id: z.number(),
@@ -25,7 +25,21 @@ const roomSchema = z.object({
 export type Player = z.infer<typeof playerSchema>;
 export type Room = z.infer<typeof roomSchema>;
 
+let lastEventId = 0;
+const events: Event[] = [];
+type Event = { eventId: number; roomId: string };
+
+function publishRoomEvent(roomId: string) {
+  events.push({ eventId: lastEventId++, roomId });
+}
+
 export const lobbyRouter = router({
+  subscribe: loggedInProcedure.subscription(async function* () {
+    while (true) {
+      const event = events.shift();
+      if (event) yield tracked(event.eventId.toString(), event);
+    }
+  }),
   rooms: loggedInProcedure
     .output(roomSchema.array())
     .query(async ({ ctx: { db } }) => {
@@ -70,6 +84,7 @@ export const lobbyRouter = router({
           owner: row.owner,
         });
       }
+
       return Array.from(roomMap.values());
     }),
   createRoom: loggedInProcedure.mutation(async ({ ctx: { userId, db } }) => {
@@ -104,7 +119,7 @@ export const lobbyRouter = router({
       roomId: roomId,
       owner: true,
     });
-
+    publishRoomEvent(roomId);
     return { roomId };
   }),
 
@@ -131,6 +146,7 @@ export const lobbyRouter = router({
         .where(eq(room_members.playerId, userId))
         .run();
 
+      publishRoomEvent(room.id);
       return { roomId: input.roomId };
     }),
 
@@ -195,6 +211,7 @@ export const lobbyRouter = router({
       .set({ gameId: game.id })
       .where(eq(rooms.id, room_member.roomId));
 
+    publishRoomEvent(room_member.roomId);
     return { gameId: game.id };
   }),
 
@@ -230,6 +247,7 @@ export const lobbyRouter = router({
 
       await db.delete(rooms).where(eq(rooms.id, input.roomId)).run();
 
+      publishRoomEvent(input.roomId);
       return { roomId: input.roomId };
     }),
 
@@ -294,6 +312,7 @@ export const lobbyRouter = router({
         })
         .run();
 
+      publishRoomEvent(input.roomId);
       return { roomId: input.roomId };
     }),
 });
