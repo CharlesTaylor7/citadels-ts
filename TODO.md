@@ -1,5 +1,7 @@
-# Shortlsit
-- [ ] Dockerize and deploy
+# Shortlist
+- [x] Dockerize and deploy
+- [ ] Github action to build docker image
+- [ ] Deploy from docker image
 - [ ] Websocket for rooms
 
 # Backend

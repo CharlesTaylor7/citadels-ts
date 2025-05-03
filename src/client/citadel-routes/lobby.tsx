@@ -1,16 +1,52 @@
-import { useState, useEffect } from "react";
-import { Link, useLoaderData, useNavigate } from "react-router";
-import { rooms, users, room_members, games, Room } from "@/server/schema";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/client/router";
 
+type RoomView = {
+  id: string;
+  name: string;
+  gameStarted?: boolean;
+  playerCount: number;
+  playerUsernames: string[];
+  ownerUsername: string;
+};
+
 export default function Lobby() {
-  const userQuery = useQuery(trpc.auth.me.query());
-  const lobbyQuery = useQuery(trpc.lobby.rooms.query());
-  const placeholder = (e: unknown) => console.log(e);
-  const isLoading = false;
-  const userRoom = null;
-  const rooms: Room[] = [];
+  const [isLoading, setIsLoading] = useState(false);
+  const userQuery = useQuery(['auth.me'], () => trpc.auth.me.query());
+  const lobbyQuery = useQuery(['lobby.rooms'], () => trpc.lobby.rooms.query());
+  
+  const user = userQuery.data;
+  const rooms = lobbyQuery.data || [];
+  const userRoom = rooms.find(r => r.members.some(m => m.id === user?.id));
+
+  const handleStartGame = async (roomId: string) => {
+    setIsLoading(true);
+    try {
+      await trpc.lobby.startGame.mutate();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseRoom = async (roomId: string) => {
+    setIsLoading(true);
+    try {
+      await trpc.lobby.closeRoom.mutate({ roomId });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLeaveRoom = async (roomId: string) => {
+    setIsLoading(true);
+    try {
+      await trpc.lobby.leaveRoom.mutate({ roomId });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="container mx-auto p-4">
       <div className="navbar bg-base-100 rounded-box shadow-sm mb-6">
@@ -61,10 +97,10 @@ export default function Lobby() {
             return (
               <div
                 key={room.id}
-                className={`card ${isPlayer ? "bg-base-200" : "bg-base-100"} shadow-md relative`}
+                className={`card ${room.members.some(m => m.id === user?.id) ? "bg-base-200" : "bg-base-100"} shadow-md relative`}
               >
                 <div className="card-body">
-                  {isPlayer && (
+                  {room.members.some(m => m.id === user?.id) && (
                     <div className="absolute top-2 right-2 flex gap-2">
                       {room.gameStarted ? (
                         <Link
@@ -73,7 +109,7 @@ export default function Lobby() {
                         >
                           Continue Game
                         </Link>
-                      ) : isOwner ? (
+                      ) : room.members.find(m => m.id === user?.id)?.owner ? (
                         <>
                           <button
                             onClick={() => handleStartGame(room.id)}
@@ -117,14 +153,14 @@ export default function Lobby() {
                     )}
                     <div>
                       <div className="font-medium mb-1">
-                        Players ({room.playerCount}):
+                        Players ({room.members.length}):
                       </div>
                       <div className="max-h-32 overflow-y-auto bg-base-100 rounded-box p-2 border border-base-300">
-                        {room.playerUsernames.map((username, index) => (
+                        {room.members.map((member, index) => (
                           <div key={index} className="flex items-center py-1">
                             <span className="badge badge-sm badge-success mr-2"></span>
-                            <span>{username}</span>
-                            {username === room.ownerUsername && (
+                            <span>{member.name}</span>
+                            {member.owner && (
                               <div className="badge badge-warning badge-sm ml-2">
                                 Owner
                               </div>
