@@ -22,11 +22,9 @@ function LobbyComponent() {
   );
   const joinRoomMutation = useMutation(trpc.lobby.joinRoom.mutationOptions());
   return (
-    <div className="container mx-auto p-4">
-      <div className="navbar bg-base-100 rounded-box shadow-sm mb-6">
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">Game Lobby</h1>
-        </div>
+    <>
+      <div className="bg-base-100 rounded-box shadow-sm mb-6">
+        <h1 className="text-2xl font-bold">Game Lobby</h1>
       </div>
 
       <div className="mb-6">
@@ -35,8 +33,9 @@ function LobbyComponent() {
           disabled={createRoomMutation.isPending || userRoom != null}
           className="btn btn-primary"
         >
-          {createRoomMutation.isPending ? "Creating..." : "Create Room"}
+          Create Room
         </button>
+        {createRoomMutation.isPending ? "creating..." : ""}
       </div>
 
       <h2 className="text-xl font-semibold mb-4">Available Rooms</h2>
@@ -170,6 +169,6 @@ function LobbyComponent() {
           })}
         </div>
       )}
-    </div>
+    </>
   );
 }

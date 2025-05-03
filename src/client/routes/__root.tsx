@@ -30,13 +30,13 @@ function RootComponent() {
     <div className="min-h-screen flex flex-col bg-base-100">
       <nav className="navbar bg-base-200 shadow-lg">
         <div className="container mx-auto">
-          <div className="flex-1">
-            <Link to="/" className="btn btn-ghost text-xl">
-              Citadels
-            </Link>
-          </div>
           <div className="flex-none gap-2">
-            <ul className="menu menu-horizontal px-1 gap-2">
+            <ul className="menu menu-horizontal px-1 gap-2 items-center">
+              <li>
+                <Link to="/" className="btn btn-ghost text-xl">
+                  Citadels
+                </Link>
+              </li>
               <li>
                 <Link
                   to="/lobby"
@@ -100,7 +100,7 @@ function RootComponent() {
         </div>
       </nav>
 
-      <main className="flex-1 container mx-auto p-4">
+      <main className="flex-1 container mx-auto">
         <Outlet />
       </main>
 
