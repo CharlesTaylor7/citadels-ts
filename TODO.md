@@ -1,6 +1,6 @@
 # Shortlist   
-- [ ] Replacement prng
-
+- [x] Replacement prng
+- [ ] Fixup lobby
 - [ ] Websocket for rooms
 - [ ] Github action to build docker image
 - [ ] Deploy from docker image

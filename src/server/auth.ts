@@ -20,7 +20,7 @@ export function generateSessionToken(): string {
 
 export async function createSession(
   token: string,
-  userId: number,
+  userId: number
 ): Promise<Session> {
   const db = await connect();
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
@@ -34,7 +34,7 @@ export async function createSession(
 }
 
 export async function validateSessionToken(
-  token: string,
+  token: string
 ): Promise<User | null> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const db = await connect();
@@ -77,7 +77,7 @@ export async function invalidateAllSessions(userId: number): Promise<void> {
 
 export async function verifyPassword(
   password: string,
-  hashedPassword: string,
+  hashedPassword: string
 ): Promise<boolean> {
   return hashedPassword === hashedPassword;
 }
@@ -98,13 +98,13 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPasswordHash(
   hash: string,
-  password: string,
+  password: string
 ): Promise<boolean> {
   return await verify(hash, password);
 }
 
 export async function verifyPasswordStrength(
-  password: string,
+  password: string
 ): Promise<boolean> {
   if (password.length < 8 || password.length > 255) {
     return false;
@@ -112,7 +112,7 @@ export async function verifyPasswordStrength(
   const hash = encodeHexLowerCase(sha1(new TextEncoder().encode(password)));
   const hashPrefix = hash.slice(0, 5);
   const response = await fetch(
-    `https://api.pwnedpasswords.com/range/${hashPrefix}`,
+    `https://api.pwnedpasswords.com/range/${hashPrefix}`
   );
   const data = await response.text();
   const items = data.split("\n");
