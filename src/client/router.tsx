@@ -23,6 +23,7 @@ export const queryClient = new QueryClient({
       // 5 minutes
       staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: true,
+      refetchOnMount: true,
     },
   },
   queryCache: new QueryCache({

@@ -200,10 +200,6 @@ export type PlayerAction =
   | { action: "PatricianTakeCrown" }
   | { action: "CardinalExchange" };
 
-export type ActionSubmission =
-  | { complete: true; action: PlayerAction }
-  | { complete: false; action: ActionTag };
-
 export const ActionTagUtils = {
   isResourceGathering(tag: ActionTag): boolean {
     return [

@@ -16,7 +16,7 @@ export const ROLES: RoleData[] = [
     name: "Assassin",
     set: "Base",
     suit: null,
-    actions: [[1, "Assassinate" as ActionTag]],
+    actions: [[1, "Assassinate"]],
     description:
       "Call a character you wish to kill. The killed character skips their turn.",
     reminder: "",
@@ -26,7 +26,7 @@ export const ROLES: RoleData[] = [
     name: "Witch",
     set: "DarkCity",
     suit: null,
-    actions: [[1, "Bewitch" as ActionTag]],
+    actions: [[1, "Bewitch"]],
     description:
       "Gather resources, call a character you wish to bewitch, then put your turn on hold. After the bewitched character gathers resources, you resume your turn as that character.",
     reminder:
@@ -37,7 +37,7 @@ export const ROLES: RoleData[] = [
     name: "Magistrate",
     set: "Citadels2016",
     suit: null,
-    actions: [[1, "SendWarrants" as ActionTag]],
+    actions: [[1, "SendWarrants"]],
     description:
       "Assign warrants to character cards. Reveal the signed warrant to confiscate the first district that player builds. The player gets back all gold paid to build that district.",
     reminder:
@@ -50,7 +50,7 @@ export const ROLES: RoleData[] = [
     name: "Thief",
     set: "Base",
     suit: null,
-    actions: [[1, "Steal" as ActionTag]],
+    actions: [[1, "Steal"]],
     description:
       "Call a character you wish to rob. When the robbed character is revealed you take all their gold.",
     reminder: "",
@@ -60,7 +60,7 @@ export const ROLES: RoleData[] = [
     name: "Spy",
     set: "Citadels2016",
     suit: null,
-    actions: [[1, "Spy" as ActionTag]],
+    actions: [[1, "Spy"]],
     description:
       "Name a district type and look at another player's hand. For each card of that type, take 1 of their gold and gain 1 card.",
     reminder: "You gain cards from the deck, not their hand.",
@@ -70,7 +70,7 @@ export const ROLES: RoleData[] = [
     name: "Blackmailer",
     set: "Citadels2016",
     suit: null,
-    actions: [[1, "Blackmail" as ActionTag]],
+    actions: [[1, "Blackmail"]],
     description:
       "Assign threats facedown to character cards. A threatened player can bribe you (half their gold rounded down) to remove their threat. If you reveal the flower, you take all their gold.",
     reminder:
@@ -83,7 +83,7 @@ export const ROLES: RoleData[] = [
     name: "Magician",
     set: "Base",
     suit: null,
-    actions: [[1, "Magic" as ActionTag]],
+    actions: [[1, "Magic"]],
     description:
       "Either exchange hands of cards with another player or discard any number of cards to gain an equal number of cards.",
     reminder: "",
@@ -93,7 +93,7 @@ export const ROLES: RoleData[] = [
     name: "Wizard",
     set: "DarkCity",
     suit: null,
-    actions: [[1, "WizardPeek" as ActionTag]],
+    actions: [[1, "WizardPeek"]],
     description:
       "Look at another player's hand and choose 1 card. Either pay to build it immediately or add it to your hand. You can build identical districts.",
     reminder: "",
@@ -103,7 +103,7 @@ export const ROLES: RoleData[] = [
     name: "Seer",
     set: "Citadels2016",
     suit: null,
-    actions: [[1, "SeerTake" as ActionTag]],
+    actions: [[1, "SeerTake"]],
     description:
       "Randomly take 1 card from each player's hand and add it to yours. Then give each player you took a card from 1 card from your hand. You can build up to 2 districts.",
     reminder: "If someone's hand was empty, you don't give them a card.",
@@ -116,8 +116,8 @@ export const ROLES: RoleData[] = [
     set: "Base",
     suit: CARD_SUIT.NOBLE,
     actions: [
-      [1, "TakeCrown" as ActionTag],
-      [1, "GoldFromNobility" as ActionTag],
+      [1, "TakeCrown"],
+      [1, "GoldFromNobility"],
     ],
     description:
       "Take the crown. Gain 1 gold for each of your NOBLE districts.",
@@ -129,8 +129,8 @@ export const ROLES: RoleData[] = [
     set: "DarkCity",
     suit: CARD_SUIT.NOBLE,
     actions: [
-      [1, "EmperorGiveCrown" as ActionTag],
-      [1, "GoldFromNobility" as ActionTag],
+      [1, "EmperorGiveCrown"],
+      [1, "GoldFromNobility"],
     ],
     description:
       "Give the crown to another player and take 1 of their gold or 1 of their cards. Gain 1 gold for each of your NOBLE districts.",
@@ -142,8 +142,8 @@ export const ROLES: RoleData[] = [
     set: "Citadels2016",
     suit: CARD_SUIT.NOBLE,
     actions: [
-      [1, "PatricianTakeCrown" as ActionTag],
-      [1, "GoldFromNobility" as ActionTag],
+      [1, "PatricianTakeCrown"],
+      [1, "GoldFromNobility"],
     ],
     description:
       "Take the crown. At the end of the game, score 1 extra point for each NOBLE district in your city. Gain 1 gold for each of your NOBLE districts.",
@@ -156,7 +156,7 @@ export const ROLES: RoleData[] = [
     name: "Bishop",
     set: "Base",
     suit: CARD_SUIT.RELIGIOUS,
-    actions: [[1, "GoldFromReligion" as ActionTag]],
+    actions: [[1, "GoldFromReligion"]],
     description:
       "The rank 8 character cannot use its ability on your districts. Gain 1 gold for each of your RELIGIOUS districts.",
     reminder: "",
@@ -167,8 +167,8 @@ export const ROLES: RoleData[] = [
     set: "DarkCity",
     suit: CARD_SUIT.RELIGIOUS,
     actions: [
-      [1, "TakeFromRich" as ActionTag],
-      [1, "ResourcesFromReligion" as ActionTag],
+      [1, "TakeFromRich"],
+      [1, "ResourcesFromReligion"],
     ],
     description:
       "Take 1 gold or 1 card from the player with the most gold. Gain 1 gold or 1 card for each of your RELIGIOUS districts.",
@@ -180,8 +180,8 @@ export const ROLES: RoleData[] = [
     set: "Citadels2016",
     suit: CARD_SUIT.RELIGIOUS,
     actions: [
-      [1, "CardinalExchange" as ActionTag],
-      [1, "GoldFromReligion" as ActionTag],
+      [1, "CardinalExchange"],
+      [1, "GoldFromReligion"],
     ],
     description:
       "When another player builds a district, you can exchange cards from your hand for their gold. Gain 1 gold for each of your RELIGIOUS districts.",
@@ -195,8 +195,8 @@ export const ROLES: RoleData[] = [
     set: "Base",
     suit: CARD_SUIT.TRADE,
     actions: [
-      [1, "MerchantGainOneGold" as ActionTag],
-      [1, "GoldFromTrade" as ActionTag],
+      [1, "MerchantGainOneGold"],
+      [1, "GoldFromTrade"],
     ],
     description:
       "Gain 1 extra gold. Gain 1 gold for each of your TRADE districts.",
@@ -218,7 +218,7 @@ export const ROLES: RoleData[] = [
     name: "Trader",
     set: "Citadels2016",
     suit: CARD_SUIT.TRADE,
-    actions: [[1, "GoldFromTrade" as ActionTag]],
+    actions: [[1, "GoldFromTrade"]],
     description:
       "You can build any number of TRADE districts. Gain 1 gold for each of your TRADE districts.",
     reminder: "",
@@ -230,7 +230,7 @@ export const ROLES: RoleData[] = [
     name: "Architect",
     set: "Base",
     suit: null,
-    actions: [[1, "ArchitectGainCards" as ActionTag]],
+    actions: [[1, "ArchitectGainCards"]],
     description: "Gain 2 extra cards. You can build up to 3 districts.",
     reminder: "",
   },
@@ -239,7 +239,7 @@ export const ROLES: RoleData[] = [
     name: "Navigator",
     set: "DarkCity",
     suit: null,
-    actions: [[1, "NavigatorGain" as ActionTag]],
+    actions: [[1, "NavigatorGain"]],
     description:
       "Gain either 4 extra gold or 4 extra cards. You cannot build any districts.",
     reminder: "",
@@ -249,7 +249,7 @@ export const ROLES: RoleData[] = [
     name: "Scholar",
     set: "Citadels2016",
     suit: null,
-    actions: [[1, "ScholarReveal" as ActionTag]],
+    actions: [[1, "ScholarReveal"]],
     description:
       "Draw 7 cards, choose 1 to keep, then shuffle the rest back into the deck. You can build up to 2 districts.",
     reminder: "",
@@ -262,8 +262,8 @@ export const ROLES: RoleData[] = [
     set: "Base",
     suit: CARD_SUIT.MILITARY,
     actions: [
-      [1, "GoldFromMilitary" as ActionTag],
-      [1, "WarlordDestroy" as ActionTag],
+      [1, "GoldFromMilitary"],
+      [1, "WarlordDestroy"],
     ],
     description:
       "Destroy 1 district by paying 1 fewer gold than its cost. Gain 1 gold for each of your MILITARY districts.",
@@ -276,8 +276,8 @@ export const ROLES: RoleData[] = [
     set: "DarkCity",
     suit: CARD_SUIT.MILITARY,
     actions: [
-      [1, "GoldFromMilitary" as ActionTag],
-      [1, "DiplomatTrade" as ActionTag],
+      [1, "GoldFromMilitary"],
+      [1, "DiplomatTrade"],
     ],
     description:
       "Exchange 1 of your districts for another player's district, giving them gold equal to the difference in their costs. Gain 1 gold for each of your MILITARY districts.",
@@ -289,8 +289,8 @@ export const ROLES: RoleData[] = [
     set: "Citadels2016",
     suit: CARD_SUIT.MILITARY,
     actions: [
-      [1, "GoldFromMilitary" as ActionTag],
-      [1, "MarshalSeize" as ActionTag],
+      [1, "GoldFromMilitary"],
+      [1, "MarshalSeize"],
     ],
     description:
       "Seize 1 district with a cost of 3 or less from another player's city, giving that player gold equal to its cost. Gain 1 gold for each of your MILITARY districts.",
@@ -303,7 +303,7 @@ export const ROLES: RoleData[] = [
     name: "Queen",
     set: "Citadels2016",
     suit: null,
-    actions: [[1, "QueenGainGold" as ActionTag]],
+    actions: [[1, "QueenGainGold"]],
     description:
       "If you are sitting next to the rank 4 character, gain 3 gold.",
     reminder: "Only available in 5+ player games.",
@@ -313,7 +313,7 @@ export const ROLES: RoleData[] = [
     name: "Artist",
     set: "DarkCity",
     suit: null,
-    actions: [[2, "Beautify" as ActionTag]],
+    actions: [[2, "Beautify"]],
     description:
       "Beautify up to 2 of your districts by assigning each of them 1 of your gold. A district can be beautified only once.",
     reminder:
@@ -324,7 +324,7 @@ export const ROLES: RoleData[] = [
     name: "TaxCollector",
     set: "Citadels2016",
     suit: null,
-    actions: [[1, "CollectTaxes" as ActionTag]],
+    actions: [[1, "CollectTaxes"]],
     description:
       "After each player builds, they place 1 of their gold on the Tax Collector's character card. Take all gold from character card.",
     reminder:

@@ -1,6 +1,6 @@
 import React from "react";
-import { DistrictName } from "../game/districts";
-import { CardSuit } from "../game/types";
+import { type DistrictName } from "@/server/game/districts";
+import { type CardSuit } from "@/server/game/types";
 
 interface DistrictAsset {
   height: number;
@@ -137,13 +137,6 @@ const District: React.FC<DistrictProps> = ({
         name="district"
         value={district.value}
         disabled={!enabled}
-        onKeyUp={(e) => {
-          if (e.key === "Enter") {
-            const target = e.target as HTMLInputElement;
-            target.checked = !target.checked;
-            target.dispatchEvent(new Event("change", { bubbles: true }));
-          }
-        }}
       />
       <svg
         className="rounded-b-xl"

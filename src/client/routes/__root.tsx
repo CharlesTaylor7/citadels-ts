@@ -2,11 +2,11 @@ import {
   Link,
   Outlet,
   createRootRouteWithContext,
-  useRouterState,
+  useNavigate,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { trpc } from "@/client/router";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import type { AppRouter } from "@/server/trpc/router";
@@ -22,9 +22,14 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootComponent() {
-  const isFetching = useRouterState({ select: (s) => s.isLoading });
   const userQuery = useQuery(trpc.auth.me.queryOptions());
-  const user = userQuery.data?.user;
+  const logoutMutation = useMutation(trpc.auth.logout.mutationOptions());
+  const navigate = useNavigate();
+  async function logout() {
+    await logoutMutation.mutateAsync();
+    navigate({ to: "/" });
+  }
+  const user = userQuery.data?.userId;
 
   return (
     <div className="min-h-screen flex flex-col bg-base-100">
@@ -41,7 +46,7 @@ function RootComponent() {
                 <Link
                   to="/lobby"
                   className="btn btn-ghost btn-sm"
-                  activeProps={{ className: "btn-active" }}
+                  activeProps={{ className: "btn-outline" }}
                 >
                   Lobby
                 </Link>
@@ -50,7 +55,7 @@ function RootComponent() {
                 <Link
                   to="/game"
                   className="btn btn-ghost btn-sm"
-                  activeProps={{ className: "btn-active" }}
+                  activeProps={{ className: "btn-outline" }}
                 >
                   Game
                 </Link>
@@ -59,7 +64,7 @@ function RootComponent() {
                 <Link
                   to="/about"
                   className="btn btn-ghost btn-sm"
-                  activeProps={{ className: "btn-active" }}
+                  activeProps={{ className: "btn-outline" }}
                 >
                   About
                 </Link>
@@ -70,18 +75,18 @@ function RootComponent() {
                     <Link
                       to="/profile"
                       className="btn btn-ghost btn-sm"
-                      activeProps={{ className: "btn-active" }}
+                      activeProps={{ className: "btn-outline" }}
                     >
                       Profile
                     </Link>
                   </li>
                   <li>
-                    <Link
-                      to="/logout"
+                    <button
+                      onClick={() => logout()}
                       className="btn btn-ghost btn-sm text-error"
                     >
                       Logout
-                    </Link>
+                    </button>
                   </li>
                 </>
               ) : (
@@ -89,7 +94,7 @@ function RootComponent() {
                   <Link
                     to="/login"
                     className="btn btn-ghost btn-sm"
-                    activeProps={{ className: "btn-active" }}
+                    activeProps={{ className: "btn-outline" }}
                   >
                     Login
                   </Link>

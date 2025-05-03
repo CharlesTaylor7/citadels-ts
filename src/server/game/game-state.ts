@@ -2,14 +2,21 @@
  * TypeScript port of the Citadels game state
  * Refactored from the Game class for better serialization
  */
-import { PlayerAction, ActionSubmission } from "./actions";
-import { DistrictName, DISTRICT_NAMES } from "./districts";
-import { Followup, performAction } from "./game-actions";
+import { PlayerAction, Action } from "./actions";
+import { DistrictName, DISTRICT_NAMES, DistrictNameUtils } from "./districts";
+import { ActionResult, Followup, performAction } from "./game-actions";
 import { GameConfig as GameConfig } from "./lobby";
 import { Museum } from "./museum";
 import { RoleName, ROLE_NAMES } from "./roles";
-import { CardSuit } from "./types";
-import { shuffle } from "./random";
+import { CardSuit, PlayerId } from "./types";
+import { asRng, newPrng, PRNG, shuffle } from "./random";
+
+export interface ActionOutput {
+  log: string;
+  followup: Followup | null;
+  end_turn: boolean;
+  notifications: Notification[];
+}
 
 /**
  * Player index type
@@ -21,7 +28,7 @@ export type PlayerIndex = number;
  */
 export interface Player {
   index: PlayerIndex;
-  id: string;
+  id: PlayerId;
   name: string;
   gold: number;
   hand: DistrictName[];
@@ -48,16 +55,10 @@ export interface Character {
   actions: PlayerAction[];
 }
 
-/**
- * Characters collection
- */
 export interface Characters {
   characters: Character[];
 }
 
-/**
- * Draft state
- */
 export interface Draft {
   playerCount: number;
   player: PlayerIndex;
@@ -67,46 +68,29 @@ export interface Draft {
   faceupDiscard: RoleName[];
 }
 
-/**
- * Call phase state
- */
 export interface Call {
   index: number;
   endOfRound: boolean;
 }
 
-/**
- * Turn types
- */
 export type TurnType = "GameOver" | "Draft" | "Call";
 
-/**
- * Turn state
- */
 export type Turn =
   | { type: "GameOver" }
   | { type: "Draft"; draft: Draft }
   | { type: "Call"; call: Call };
 
-/**
- * Notification type
- */
 export interface Notification {
   message: string;
   playerIndex: PlayerIndex | null;
 }
 
-/**
- * Deck of cards
- */
 export interface Deck<T> {
   deck: T[];
   discard: T[];
+  prng: PRNG;
 }
 
-/**
- * Game state type definition
- */
 export interface GameState {
   players: Player[];
   characters: Characters;
@@ -122,12 +106,9 @@ export interface GameState {
   taxCollector: number;
 }
 
-/**
- * Create a new player
- */
 export function createPlayer(
   index: PlayerIndex,
-  id: string,
+  id: PlayerId,
   name: string,
 ): Player {
   return {
@@ -141,9 +122,6 @@ export function createPlayer(
   };
 }
 
-/**
- * Create a city district
- */
 export function createCityDistrict(name: DistrictName): CityDistrict {
   return {
     name,
@@ -151,9 +129,6 @@ export function createCityDistrict(name: DistrictName): CityDistrict {
   };
 }
 
-/**
- * Create a character
- */
 export function createCharacter(role: RoleName): Character {
   return {
     role,
@@ -164,32 +139,24 @@ export function createCharacter(role: RoleName): Character {
   };
 }
 
-/**
- * Create a new characters collection
- */
 export function createCharacters(roles: readonly RoleName[]): Characters {
   return {
     characters: roles.map((role) => createCharacter(role)),
   };
 }
 
-/**
- * Create a new deck
- */
-export function createDeck<T>(items: readonly T[]): Deck<T> {
+export function createDeck<T>(items: readonly T[], prng: PRNG): Deck<T> {
   return {
     deck: [...items],
     discard: [],
+    prng,
   };
 }
 
-/**
- * Shuffle a deck
- */
 export function shuffleDeck<T>(deck: Deck<T>): void {
   deck.deck.push(...deck.discard);
   deck.discard = [];
-  shuffle(deck.deck);
+  shuffle(deck.deck, asRng(deck.prng));
 }
 
 /**
@@ -280,17 +247,18 @@ export function beginDraft(
 /**
  * Create a new game state
  */
-export function createGame(lobby: GameConfig): GameState {
+export function createGame(config: GameConfig): GameState {
   // Initialize players
-  const players = lobby.players.map((player, index) =>
-    createPlayer({ 0: index }, player.id, player.name),
+  const players = config.players.map((player, index) =>
+    createPlayer(index, player.id, player.name),
   );
+  const prng = newPrng(config.rngSeed);
 
   // Initialize characters
   const characters = createCharacters(ROLE_NAMES);
 
   // Initialize deck with all district cards
-  const deck = createDeck<DistrictName>(DISTRICT_NAMES);
+  const deck = createDeck<DistrictName>(DISTRICT_NAMES, prng);
   shuffleDeck(deck);
 
   // Initialize museum
@@ -308,7 +276,7 @@ export function createGame(lobby: GameConfig): GameState {
     deck,
     museum,
     logs: [],
-    crowned: { 0: 0 }, // First player is crowned initially
+    crowned: 0,
     taxCollector: 0,
     alchemist: 0,
     firstToComplete: null,
@@ -316,7 +284,7 @@ export function createGame(lobby: GameConfig): GameState {
     notifications: [],
     activeTurn: {
       type: "Draft",
-      draft: beginDraft(players.length, { 0: 0 }, ROLE_NAMES),
+      draft: beginDraft(players.length, 0, ROLE_NAMES),
     },
   };
 }
@@ -329,7 +297,7 @@ export function getActivePlayer(game: GameState): Player | undefined {
   if (!activeRole || activeRole.player === null) {
     return undefined;
   }
-  return game.players[activeRole.player[0]];
+  return game.players[activeRole.player];
 }
 
 /**
@@ -351,7 +319,7 @@ export function completeAction(
   cost: number,
   district: DistrictName,
 ): void {
-  const player = game.players[playerIndex[0]];
+  const player = game.players[playerIndex];
   player.gold -= cost;
 
   // Remove from hand
@@ -382,16 +350,6 @@ export function discardDistrict(game: GameState, district: DistrictName): void {
 }
 
 /**
- * Perform an action
- */
-export function performGameAction(
-  game: GameState,
-  action: ActionSubmission,
-): ActionResult {
-  return performAction(game, action);
-}
-
-/**
  * Gain cards for the active player
  */
 export function gainCards(game: GameState, amount: number): void {
@@ -408,28 +366,17 @@ export function gainCards(game: GameState, amount: number): void {
 }
 
 /**
- * Choose a card from a selection
- */
-export function chooseCard(
-  game: GameState,
-  cards: DistrictName[],
-): DistrictName {
-  // This is a placeholder - implement the actual logic
-  return cards[0];
-}
-
-/**
  * Gain resources for districts of a specific suit
  */
 export function gainResourcesForSuit(game: GameState, suit: CardSuit): void {
   const player = getActivePlayer(game);
   if (!player) return;
 
-  // Count districts of the specified suit
-  const count = player.city.filter((c) => {
-    // This is a placeholder - implement the actual logic to check district suit
-    return true;
-  }).length;
+  const count = player.city.filter(
+    (c) =>
+      c.name === "SchoolOfMagic" ||
+      DistrictNameUtils.data(c.name).suit === suit,
+  ).length;
 
   if (count > 0) {
     player.gold += count;
@@ -528,7 +475,7 @@ export function endRound(game: GameState): void {
   if (heir && heir.player) {
     game.crowned = heir.player;
     game.logs.push(
-      `${heir.role}'s heir ${game.players[game.crowned[0]].name} crowned.`,
+      `${heir.role}'s heir ${game.players[game.crowned].name} crowned.`,
     );
   }
 
@@ -548,231 +495,171 @@ export function endRound(game: GameState): void {
 /**
  * Start a new turn
  */
-export function startTurn(game: GameState): {
-  success: boolean;
-  value?: void;
-  error?: string;
-} {
-  try {
-    switch (game.activeTurn.type) {
-      case "GameOver":
-        return { success: true, value: undefined };
+export function startTurn(game: GameState) {
+  switch (game.activeTurn.type) {
+    case "GameOver":
+      return { success: true, value: undefined };
 
-      case "Draft": {
-        const draft = game.activeTurn.draft;
-        if (draft.theaterStep) {
-          // Start call phase
-          game.activeTurn = {
-            type: "Call",
-            call: {
-              index: 0,
-              endOfRound: false,
-            },
-          };
-        } else {
-          // Handle special cases for different player counts
-          if (
-            game.players.length === 3 &&
-            game.characters.characters.length === 9 &&
-            draft.remaining.length === 5
-          ) {
-            // For 3 player game with 9 characters, discard 1 randomly
-            const index = Math.floor(Math.random() * draft.remaining.length);
-            draft.remaining.splice(index, 1);
-          }
+    case "Draft": {
+      const draft = game.activeTurn.draft;
+      if (draft.theaterStep) {
+        // Start call phase
+        game.activeTurn = {
+          type: "Call",
+          call: {
+            index: 0,
+            endOfRound: false,
+          },
+        };
+      } else {
+        // Handle special cases for different player counts
+        if (
+          game.players.length === 3 &&
+          game.characters.characters.length === 9 &&
+          draft.remaining.length === 5
+        ) {
+          // For 3 player game with 9 characters, discard 1 randomly
+          const index = Math.floor(Math.random() * draft.remaining.length);
+          draft.remaining.splice(index, 1);
         }
-        break;
       }
-
-      case "Call": {
-        const call = game.activeTurn.call;
-        const character = game.characters.characters[call.index];
-
-        // If character has a player, add actions
-        if (character.player !== null) {
-          const player = game.players[character.player[0]];
-
-          // Add standard actions
-          character.actions = [{ action: "TakeGold" }, { action: "DrawCards" }];
-
-          // Add character-specific actions
-          switch (character.role) {
-            case "Assassin":
-              // Add assassin actions
-              break;
-
-            case "Thief":
-              // Add thief actions
-              break;
-
-            case "Magician":
-              // Add magician actions
-              break;
-
-            case "King":
-              // Add king actions
-              // King gets resources for noble districts and is crowned
-              game.crowned = character.player;
-              gainResourcesForSuit(game, "Noble");
-              break;
-
-            case "Bishop":
-              // Add bishop actions
-              // Bishop gets resources for religious districts
-              gainResourcesForSuit(game, "Religious");
-              break;
-
-            case "Merchant":
-              // Add merchant actions
-              // Merchant gets 1 gold and resources for trade districts
-              player.gold += 1;
-              character.logs.push(
-                `${player.name} gains 1 gold as the Merchant.`,
-              );
-              gainResourcesForSuit(game, "Trade");
-              break;
-
-            case "Architect":
-              // Add architect actions
-              // Architect gets 2 cards
-              gainCards(game, 2);
-              break;
-
-            case "Warlord":
-              // Add warlord actions
-              // Warlord gets resources for military districts
-              gainResourcesForSuit(game, "Military");
-              break;
-
-            default:
-              // No special actions for other characters
-              break;
-          }
-        }
-        break;
-      }
+      break;
     }
 
-    return { success: true, value: undefined };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    case "Call": {
+      const call = game.activeTurn.call;
+      const character = game.characters.characters[call.index];
+
+      // If character has a player, add actions
+      if (character.player !== null) {
+        const player = game.players[character.player];
+
+        // Add standard actions
+        character.actions = [
+          { action: "GatherResourceGold" },
+          { action: "GatherResourceCards" },
+        ];
+
+        // Add character-specific actions
+        switch (character.role) {
+          case "Assassin":
+            // Add assassin actions
+            break;
+
+          case "Thief":
+            // Add thief actions
+            break;
+
+          case "Magician":
+            // Add magician actions
+            break;
+
+          case "King":
+            // Add king actions
+            // King gets resources for noble districts and is crowned
+            game.crowned = character.player;
+            gainResourcesForSuit(game, "Noble");
+            break;
+
+          case "Bishop":
+            // Add bishop actions
+            // Bishop gets resources for religious districts
+            gainResourcesForSuit(game, "Religious");
+            break;
+
+          case "Merchant":
+            // Add merchant actions
+            // Merchant gets 1 gold and resources for trade districts
+            player.gold += 1;
+            character.logs.push(`${player.name} gains 1 gold as the Merchant.`);
+            gainResourcesForSuit(game, "Trade");
+            break;
+
+          case "Architect":
+            // Add architect actions
+            // Architect gets 2 cards
+            gainCards(game, 2);
+            break;
+
+          case "Warlord":
+            // Add warlord actions
+            // Warlord gets resources for military districts
+            gainResourcesForSuit(game, "Military");
+            break;
+
+          default:
+            // No special actions for other characters
+            break;
+        }
+      }
+      break;
+    }
   }
+
+  return { success: true, value: undefined };
 }
 
 /**
  * Process the end of a turn
  */
-export function processTurnEnd(game: GameState): {
-  success: boolean;
-  value?: void;
-  error?: string;
-} {
-  try {
-    switch (game.activeTurn.type) {
-      case "GameOver":
-        break;
+export function processTurnEnd(game: GameState) {
+  switch (game.activeTurn.type) {
+    case "GameOver":
+      break;
 
-      case "Draft": {
-        const draft = game.activeTurn.draft;
-        if (draft.theaterStep) {
-          // Move to call phase
-          game.activeTurn = {
-            type: "Call",
-            call: {
-              index: 0,
-              endOfRound: false,
-            },
-          };
-        } else {
-          // Move to next player in draft
-          draft.player = { 0: (draft.player[0] + 1) % game.players.length };
-        }
-        break;
+    case "Draft": {
+      const draft = game.activeTurn.draft;
+      if (draft.theaterStep) {
+        // Move to call phase
+        game.activeTurn = {
+          type: "Call",
+          call: {
+            index: 0,
+            endOfRound: false,
+          },
+        };
+      } else {
+        // Move to next player in draft
+        draft.player = (draft.player + 1) % game.players.length;
       }
-
-      case "Call": {
-        const call = game.activeTurn.call;
-        const activeRole = game.characters.characters[call.index];
-
-        // If this is the end of the round, end it
-        if (call.endOfRound) {
-          endRound(game);
-        } else {
-          // Handle Alchemist refund
-          const refund = game.alchemist;
-          if (refund > 0 && activeRole.player) {
-            game.alchemist = 0;
-            const player = game.players[activeRole.player[0]];
-            player.gold += refund;
-            activeRole.logs.push(
-              `The Alchemist is refunded ${refund} gold spent building.`,
-            );
-          }
-
-          callNext(game);
-        }
-        break;
-      }
+      break;
     }
 
-    return startTurn(game);
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    case "Call": {
+      const call = game.activeTurn.call;
+      const activeRole = game.characters.characters[call.index];
+
+      // If this is the end of the round, end it
+      if (call.endOfRound) {
+        endRound(game);
+      } else {
+        // Handle Alchemist refund
+        const refund = game.alchemist;
+        if (refund > 0 && activeRole.player) {
+          game.alchemist = 0;
+          const player = game.players[activeRole.player];
+          player.gold += refund;
+          activeRole.logs.push(
+            `The Alchemist is refunded ${refund} gold spent building.`,
+          );
+        }
+
+        callNext(game);
+      }
+      break;
+    }
   }
+
+  return startTurn(game);
 }
 
-/**
- * Serialize a game state to JSON
- */
-export function serializeGame(game: GameState): string {
-  return JSON.stringify(game);
-}
-
-/**
- * Deserialize a game state from JSON
- */
-export function deserializeGame(json: string): GameState {
-  return JSON.parse(json);
-}
-
-/**
- * Helper function to count districts of a specific suit for a player
- */
 export function countSuitForResourceGain(
   player: Player,
   suit: CardSuit,
 ): number {
-  return player.city.filter((c) => {
-    // This is a placeholder - implement the actual logic to check district suit
-    return true;
-  }).length;
-}
-
-/**
- * Helper function to check if a player has a specific district
- */
-export function playerHasDistrict(player: Player, name: DistrictName): boolean {
-  return player.city.some((c) => c.name === name);
-}
-
-/**
- * Helper function to check if a player has a specific role
- */
-export function playerHasRole(player: Player, name: RoleName): boolean {
-  return player.roles.some((r) => r === name);
-}
-
-/**
- * Calculate the size of a player's city
- */
-export function calculateCitySize(player: Player): number {
-  return player.city.reduce((sum, d) => {
-    return sum + (d.name === "Monument" ? 2 : 1);
-  }, 0);
+  return player.city.filter(
+    (c) =>
+      c.name === "SchoolOfMagic" ||
+      DistrictNameUtils.data(c.name).suit === suit,
+  ).length;
 }

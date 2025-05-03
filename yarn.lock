@@ -1539,7 +1539,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@napi-rs/wasm-runtime@npm:^0.2.5, @napi-rs/wasm-runtime@npm:^0.2.9":
+"@napi-rs/wasm-runtime@npm:^0.2.9":
   version: 0.2.9
   resolution: "@napi-rs/wasm-runtime@npm:0.2.9"
   dependencies:
@@ -1674,157 +1674,6 @@ __metadata:
   bin:
     zip-it-and-ship-it: bin.js
   checksum: 10c0/329542fdf3a7ebf089bb6faaf7ebb826ca24080a26ca3cd9a8eec9bf8adf34f8c54a8f298740243eee7779cb377316599fd4809d4663b972f6c81d36edca3b88
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-android-arm-eabi@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-android-arm-eabi@npm:2.0.2"
-  conditions: os=android & cpu=arm
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-android-arm64@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-android-arm64@npm:2.0.2"
-  conditions: os=android & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-darwin-arm64@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-darwin-arm64@npm:2.0.2"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-darwin-x64@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-darwin-x64@npm:2.0.2"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-freebsd-x64@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-freebsd-x64@npm:2.0.2"
-  conditions: os=freebsd & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-linux-arm-gnueabihf@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-linux-arm-gnueabihf@npm:2.0.2"
-  conditions: os=linux & cpu=arm
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-linux-arm64-gnu@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-linux-arm64-gnu@npm:2.0.2"
-  conditions: os=linux & cpu=arm64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-linux-arm64-musl@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-linux-arm64-musl@npm:2.0.2"
-  conditions: os=linux & cpu=arm64 & libc=musl
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-linux-x64-gnu@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-linux-x64-gnu@npm:2.0.2"
-  conditions: os=linux & cpu=x64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-linux-x64-musl@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-linux-x64-musl@npm:2.0.2"
-  conditions: os=linux & cpu=x64 & libc=musl
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-wasm32-wasi@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-wasm32-wasi@npm:2.0.2"
-  dependencies:
-    "@napi-rs/wasm-runtime": "npm:^0.2.5"
-  conditions: cpu=wasm32
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-win32-arm64-msvc@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-win32-arm64-msvc@npm:2.0.2"
-  conditions: os=win32 & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-win32-ia32-msvc@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-win32-ia32-msvc@npm:2.0.2"
-  conditions: os=win32 & cpu=ia32
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2-win32-x64-msvc@npm:2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2-win32-x64-msvc@npm:2.0.2"
-  conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@node-rs/argon2@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "@node-rs/argon2@npm:2.0.2"
-  dependencies:
-    "@node-rs/argon2-android-arm-eabi": "npm:2.0.2"
-    "@node-rs/argon2-android-arm64": "npm:2.0.2"
-    "@node-rs/argon2-darwin-arm64": "npm:2.0.2"
-    "@node-rs/argon2-darwin-x64": "npm:2.0.2"
-    "@node-rs/argon2-freebsd-x64": "npm:2.0.2"
-    "@node-rs/argon2-linux-arm-gnueabihf": "npm:2.0.2"
-    "@node-rs/argon2-linux-arm64-gnu": "npm:2.0.2"
-    "@node-rs/argon2-linux-arm64-musl": "npm:2.0.2"
-    "@node-rs/argon2-linux-x64-gnu": "npm:2.0.2"
-    "@node-rs/argon2-linux-x64-musl": "npm:2.0.2"
-    "@node-rs/argon2-wasm32-wasi": "npm:2.0.2"
-    "@node-rs/argon2-win32-arm64-msvc": "npm:2.0.2"
-    "@node-rs/argon2-win32-ia32-msvc": "npm:2.0.2"
-    "@node-rs/argon2-win32-x64-msvc": "npm:2.0.2"
-  dependenciesMeta:
-    "@node-rs/argon2-android-arm-eabi":
-      optional: true
-    "@node-rs/argon2-android-arm64":
-      optional: true
-    "@node-rs/argon2-darwin-arm64":
-      optional: true
-    "@node-rs/argon2-darwin-x64":
-      optional: true
-    "@node-rs/argon2-freebsd-x64":
-      optional: true
-    "@node-rs/argon2-linux-arm-gnueabihf":
-      optional: true
-    "@node-rs/argon2-linux-arm64-gnu":
-      optional: true
-    "@node-rs/argon2-linux-arm64-musl":
-      optional: true
-    "@node-rs/argon2-linux-x64-gnu":
-      optional: true
-    "@node-rs/argon2-linux-x64-musl":
-      optional: true
-    "@node-rs/argon2-wasm32-wasi":
-      optional: true
-    "@node-rs/argon2-win32-arm64-msvc":
-      optional: true
-    "@node-rs/argon2-win32-ia32-msvc":
-      optional: true
-    "@node-rs/argon2-win32-x64-msvc":
-      optional: true
-  checksum: 10c0/0513244f8b820cd38e3b3dc8ad4dbee2f2ada3ba37714c3975dbf801df26ab906b420fb769c171fee0ac06caff9e0471c827e18876f55568ea234b9b48e6da53
   languageName: node
   linkType: hard
 
@@ -4223,7 +4072,6 @@ __metadata:
   resolution: "citadels@workspace:."
   dependencies:
     "@libsql/client": "npm:^0.15.4"
-    "@node-rs/argon2": "npm:^2.0.2"
     "@oslojs/crypto": "npm:^1.0.1"
     "@oslojs/encoding": "npm:^1.1.0"
     "@tailwindcss/vite": "npm:^4.0.0"
@@ -4247,9 +4095,7 @@ __metadata:
     eslint-plugin-no-type-assertion: "npm:^1.3.0"
     eslint-plugin-react: "npm:^7.37.5"
     eslint-plugin-react-hooks: "npm:^5.2.0"
-    mangata-prng-xoshiro: "npm:^3.0.0"
     prettier: "npm:^3.5.3"
-    prng-xoshiro: "npm:^1.0.1"
     pure-rand: "npm:^7.0.1"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
@@ -8072,13 +7918,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mangata-prng-xoshiro@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "mangata-prng-xoshiro@npm:3.0.0"
-  checksum: 10c0/44ec77185fdeaf40c285212a670e4caca05fca7cccf7dd5a037af422f34c8c51e6b1cef1a44a20cd4ecab9bada9494ad74c65a07a6be12ba40f123610e5dd9d2
-  languageName: node
-  linkType: hard
-
 "math-intrinsics@npm:^1.1.0":
   version: 1.1.0
   resolution: "math-intrinsics@npm:1.1.0"
@@ -9185,13 +9024,6 @@ __metadata:
   version: 6.1.1
   resolution: "pretty-bytes@npm:6.1.1"
   checksum: 10c0/c7a660b933355f3b4587ad3f001c266a8dd6afd17db9f89ebc50812354bb142df4b9600396ba5999bdb1f9717300387dc311df91895c5f0f2a1780e22495b5f8
-  languageName: node
-  linkType: hard
-
-"prng-xoshiro@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "prng-xoshiro@npm:1.0.1"
-  checksum: 10c0/7eb6887f92bb59c91223e75a311d69328216e7d4ffac5569120ecb357c07b2decbabe1fb99dad8321da4fc79e67a56d0133ccde72c1ab179bc16cf66a8165cbe
   languageName: node
   linkType: hard
 
