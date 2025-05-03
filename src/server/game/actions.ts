@@ -1,16 +1,8 @@
-/**
- * TypeScript port of the Citadels actions
- * Converted from Rust implementation
- */
 import { DistrictName } from "./districts";
-import { GameOptions, LobbyMember } from "./lobby";
+import { GameConfig } from "./lobby";
 import { RoleName } from "./roles";
 import { CardSuit } from "./types";
-import { Seed } from "./random";
 
-/**
- * All possible action tags in the game
- */
 export const ACTION_TAGS = [
   "DraftPick",
   "DraftDiscard",
@@ -131,6 +123,7 @@ export type WizardMethod =
   | { wizardMethod: "Necropolis"; sacrifice: CityDistrictTarget }
   | { wizardMethod: "ThievesDen"; discard: DistrictName[] };
 
+type PlayerName = string;
 /**
  * Actions for the magician
  */
@@ -142,10 +135,7 @@ export type Action = Readonly<GameStartAction | PlayerAction>;
 
 export type GameStartAction = {
   action: "GameStart";
-  config: GameOptions;
-  players: LobbyMember[];
-  rngSeed: Seed;
-};
+} & GameConfig;
 /**
  * All possible player actions in the game
  *
@@ -210,22 +200,11 @@ export type PlayerAction =
   | { action: "PatricianTakeCrown" }
   | { action: "CardinalExchange" };
 
-/**
- * Action submission that can be either complete or incomplete
- */
 export type ActionSubmission =
   | { complete: true; action: PlayerAction }
   | { complete: false; action: ActionTag };
 
-/**
- * Utility functions for ActionTag
- */
 export const ActionTagUtils = {
-  /**
-   * Check if an action tag is for resource gathering
-   * @param tag The action tag to check
-   * @returns True if the action is for resource gathering
-   */
   isResourceGathering(tag: ActionTag): boolean {
     return [
       "GatherResourceGold",
@@ -234,11 +213,6 @@ export const ActionTagUtils = {
     ].includes(tag);
   },
 
-  /**
-   * Check if an action tag is required
-   * @param tag The action tag to check
-   * @returns True if the action is required
-   */
   isRequired(tag: ActionTag): boolean {
     return [
       "DraftPick",
@@ -248,15 +222,7 @@ export const ActionTagUtils = {
     ].includes(tag);
   },
 
-  /**
-   * Get a human-readable label for an action tag
-   * @param tag The action tag
-   * @param player The player (optional)
-   * @returns A human-readable label
-   */
-  label(tag: ActionTag, player?: any): string {
-    // This is a simplified version of the original implementation
-    // The full implementation would need player information to calculate resource counts
+  label(tag: ActionTag): string {
     switch (tag) {
       case "GoldFromTrade":
         return "Gain gold from Trade";

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
-import { db, rooms, users, room_members, games, Room } from "@/server/db";
+import { db, rooms, users, room_members, games, Room } from "@/server/schema";
 import { useTRPC } from "@/server/trpc";
 import { useQuery } from "@tanstack/react-query";
 
@@ -124,13 +124,7 @@ export default function Lobby() {
                         {room.playerUsernames.map((username, index) => (
                           <div key={index} className="flex items-center py-1">
                             <span className="badge badge-sm badge-success mr-2"></span>
-                            <span
-                              className={
-                                username === user.username ? "font-medium" : ""
-                              }
-                            >
-                              {username} {username === user.username && "(You)"}
-                            </span>
+                            <span>{username}</span>
                             {username === room.ownerUsername && (
                               <div className="badge badge-warning badge-sm ml-2">
                                 Owner
@@ -142,28 +136,26 @@ export default function Lobby() {
                     </div>
                   </div>
 
-                  {!isPlayer && (
-                    <div className="card-actions justify-end">
-                      {room.gameStarted ? (
-                        <div className="w-full text-center text-sm text-gray-500">
-                          Game already in progress
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleJoinRoom(room.id)}
-                          disabled={
-                            isLoading ||
-                            (userRoom !== null && userRoom !== room.id)
-                          }
-                          className={`btn ${userRoom !== null && userRoom !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
-                        >
-                          {userRoom !== null && userRoom !== room.id
-                            ? "Already in another room"
-                            : "Join Room"}
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="card-actions justify-end">
+                    {room.gameStarted ? (
+                      <div className="w-full text-center text-sm text-gray-500">
+                        Game already in progress
+                      </div>
+                    ) : (
+                      <button
+                        onClick={placeholder}
+                        disabled={
+                          isLoading ||
+                          (userRoom !== null && userRoom !== room.id)
+                        }
+                        className={`btn ${userRoom !== null && userRoom !== room.id ? "btn-disabled" : "btn-primary"} w-full`}
+                      >
+                        {userRoom !== null && userRoom !== room.id
+                          ? "Already in another room"
+                          : "Join Room"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

@@ -1,27 +1,22 @@
 import { z } from "zod";
 import { t as trpc } from ".";
-import { db, rooms, users, room_members, games } from "@/server/schema";
+import { rooms, users, room_members, games } from "@/server/schema";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { GameConfigUtils } from "@/server/game/lobby";
 import { createGame } from "@/server/game/game-state";
 import { newSeed } from "@/server/game/random";
-import { Action } from "@/server/game/actions";
-
-function action(action: Action): Action {
-  return action;
-}
 
 export const lobbyRouter = trpc.router({
-  createRoom: trpc.procedure.mutation(async ({ ctx }) => {
-    if (!ctx.session.user)
+  createRoom: trpc.procedure.mutation(async ({ ctx: { session, db } }) => {
+    if (!session.user)
       return { success: false, error: "User not authenticated" };
 
     // Check if user is already in any room
     const userRoomMembership = await db
       .select()
       .from(room_members)
-      .where(eq(room_members.playerId, ctx.session.user.id))
+      .where(eq(room_members.playerId, session.user.id))
       .get();
 
     // If user is already in a room, return error
@@ -44,7 +39,7 @@ export const lobbyRouter = trpc.router({
 
     // Add the owner as a room member
     await db.insert(room_members).values({
-      playerId: ctx.session.user.id,
+      playerId: session.user.id,
       roomId: roomId,
       owner: true,
     });
@@ -54,8 +49,8 @@ export const lobbyRouter = trpc.router({
 
   leaveRoom: trpc.procedure
     .input(z.object({ roomId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (!ctx.session.user)
+    .mutation(async ({ input, ctx: { session, db } }) => {
+      if (!session.user)
         return { success: false, error: "User not authenticated" };
 
       // Get the room
@@ -72,21 +67,21 @@ export const lobbyRouter = trpc.router({
       // Remove the user from the room_members table
       await db
         .delete(room_members)
-        .where(eq(room_members.playerId, ctx.session.user.id))
+        .where(eq(room_members.playerId, session.user.id))
         .run();
 
       return { success: true };
     }),
 
-  startGame: trpc.procedure.mutation(async ({ ctx, input }) => {
-    if (!ctx.session.user) {
+  startGame: trpc.procedure.mutation(async ({ ctx: { session, db } }) => {
+    if (!session.user) {
       return { success: false, error: "User not authenticated" };
     }
     // Check if in room and owner
     const room_member = await db
       .select()
       .from(room_members)
-      .where(eq(users.id, ctx.session.user.id))
+      .where(eq(users.id, session.user.id))
       .get();
 
     if (!room_member) {
@@ -125,15 +120,15 @@ export const lobbyRouter = trpc.router({
 
     // Create a new game record
 
-    const gameStartAction = action({
-      type: "GAME_START",
+    const rngSeed = newSeed();
+    const gameStartAction = {
+      action: "GameStart",
       players,
       config,
-      rngSeed: rngSeed,
-    });
+      rngSeed,
+    };
 
-    const rngSeed = newSeed();
-    const initialState = createGame({ config, players, rngSeed });
+    const initialState = createGame(gameStartAction);
     const [game] = await db
       .insert(games)
       .values({
@@ -152,23 +147,28 @@ export const lobbyRouter = trpc.router({
 
   closeRoom: trpc.procedure
     .input(z.object({ roomId: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.session.user) {
+    .mutation(async ({ input, ctx: { session, db } }) => {
+      if (!session.user) {
         return { success: false, error: "User not authenticated" };
       }
       // Get the room
-      const room = await db
+      const room_member = await db
         .select()
-        .from(rooms)
-        .where(eq(rooms.id, input.roomId))
+        .from(room_members)
+        .where(
+          and(
+            eq(room_members.roomId, input.roomId),
+            eq(room_members.playerId, session.user.id),
+          ),
+        )
         .get();
 
-      if (!room) {
+      if (!room_member) {
         return { success: false, error: "Room not found" };
       }
 
       // Check if user is the owner
-      if (room.ownerId !== ctx.session.user.id) {
+      if (!room_member.owner) {
         return {
           success: false,
           error: "Only the room owner can close a room",
@@ -182,15 +182,15 @@ export const lobbyRouter = trpc.router({
 
   joinRoom: trpc.procedure
     .input(z.object({ roomId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (!ctx.session.user) {
+    .mutation(async ({ ctx: { session, db }, input }) => {
+      if (!session.user) {
         return { success: false, error: "User not authenticated" };
       }
       // Check if user is already in any room
       const userRoomMembership = await db
         .select()
         .from(room_members)
-        .where(eq(room_members.playerId, ctx.session.user?.id))
+        .where(eq(room_members.playerId, session.user?.id))
         .get();
 
       // If user is already in a different room, return error
@@ -219,7 +219,7 @@ export const lobbyRouter = trpc.router({
         .from(room_members)
         .where(
           and(
-            eq(room_members.playerId, ctx.session.user?.id),
+            eq(room_members.playerId, session.user?.id),
             eq(room_members.roomId, input.roomId),
           ),
         )
@@ -233,7 +233,7 @@ export const lobbyRouter = trpc.router({
       await db
         .insert(room_members)
         .values({
-          playerId: ctx.session.user?.id,
+          playerId: session.user?.id,
           roomId: input.roomId,
         })
         .run();

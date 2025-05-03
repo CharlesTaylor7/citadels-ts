@@ -22,7 +22,9 @@ For Typescript:
 - avoid type assetions
 - avoid try-catch, let things crash, I want to see full stack traces
 - don't wrap things in "result" types. just return the thing
+- Don't write new comments. Copy over pre-existing comments if any exist. If there are no comments in the rust code, don't write any comments.
 
 For React:
 - use tprc for most database queries, mutations and subscriptions
 - use loaders sparingly for information that doesn't change very often. like the logged in user's info.
+
