@@ -19,7 +19,7 @@ const roomSchema = z.object({
   id: z.string(),
   name: z.string(),
   gameId: z.number().nullable(),
-  owner: playerSchema,
+  owner: playerSchema.nullable(),
   members: z.array(playerSchema),
 });
 
@@ -64,8 +64,7 @@ export const lobbyRouter = router({
             id: row.roomId,
             gameId: row.gameId,
             name: row.roomName,
-            // eslint-disable-next-line
-            owner: null as any,
+            owner: null,
             members: [],
           };
           roomMap.set(row.roomId, record);
@@ -150,13 +149,15 @@ export const lobbyRouter = router({
     }),
 
   startGame: loggedInProcedure.mutation(async ({ ctx: { db, userId } }) => {
+    console.log(userId);
     // Check if in room and owner
     const room_member = await db
       .select()
       .from(room_members)
-      .where(eq(users.id, userId))
+      .where(eq(room_members.playerId, userId))
       .get();
 
+    console.log(room_member);
     if (!room_member) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -173,11 +174,12 @@ export const lobbyRouter = router({
 
     // Check if there are enough players (at least 2)
     const players = await db
-      .select({ id: room_members.playerId, name: users.username })
+      .select({ id: users.id, name: users.username })
       .from(room_members)
       .innerJoin(users, eq(room_members.playerId, users.id))
       .where(eq(room_members.roomId, room_member.roomId))
       .all();
+    console.log(players);
 
     if (players.length < 2) {
       throw new TRPCError({
@@ -195,6 +197,8 @@ export const lobbyRouter = router({
       rngSeed,
     };
 
+    console.log(config);
+
     const initialState = createGame(gameStartAction);
     const game = await db
       .insert(games)
@@ -204,6 +208,8 @@ export const lobbyRouter = router({
       })
       .returning({ id: games.id })
       .get();
+
+    console.log(game);
 
     await db
       .update(rooms)

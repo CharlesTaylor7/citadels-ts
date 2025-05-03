@@ -5,7 +5,12 @@
     - [x] can create room
     - [x] Can display rooms
     - [x] query updates for room
-    - [ ] Websocket updates for rooms
+    - [x] live updates for rooms
+    - [x] Can join room
+    - [x] can leave room
+    - [ ] can transfer owner
+    - [ ] Can start game
+- [ ] We should not be sending stacktraces back to the client
 - [ ] Github action to build docker image
 - [ ] Deploy from docker image
 

@@ -2,7 +2,7 @@
  * TypeScript port of the Citadels game state
  * Refactored from the Game class for better serialization
  */
-import { PlayerAction, ActionSubmission, ActionResult } from "./actions";
+import { PlayerAction, ActionSubmission } from "./actions";
 import { DistrictName, DISTRICT_NAMES } from "./districts";
 import { Followup, performAction } from "./game-actions";
 import { GameConfig as GameConfig } from "./lobby";
@@ -14,7 +14,7 @@ import { shuffle } from "./random";
 /**
  * Player index type
  */
-export type PlayerIndex = { 0: number };
+export type PlayerIndex = number;
 
 /**
  * Player in the game
