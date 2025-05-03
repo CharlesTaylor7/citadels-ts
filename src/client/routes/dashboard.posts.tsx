@@ -6,7 +6,6 @@ import {
 } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "../router";
-import { Spinner } from "./-components/spinner";
 
 export const Route = createFileRoute("/dashboard/posts")({
   errorComponent: () => "Oh crap!",
@@ -14,7 +13,6 @@ export const Route = createFileRoute("/dashboard/posts")({
     await queryClient.ensureQueryData(trpc.dashboard.posts.queryOptions());
     return;
   },
-  pendingComponent: Spinner,
   component: DashboardPostsComponent,
 });
 
@@ -46,9 +44,7 @@ function DashboardPostsComponent() {
                       postId: post.id,
                     }}
                     pending
-                  >
-                    <Spinner />
-                  </MatchRoute>
+                  ></MatchRoute>
                 </pre>
               </Link>
             </div>

@@ -1,11 +1,11 @@
 # Shortlist   
+- [ ] Login/signup
+  - [ ] Can view errors on page
 - [ ] Fixup lobby
     - [x] can create room
-    - [x] Fixup sessions
-      - [x] auth trpc handler
-      - [x] session cookie parsing
-    - [ ] Can display rooms
-- [ ] Websocket for rooms
+    - [x] Can display rooms
+    - [x] query updates for room
+    - [ ] Websocket updates for rooms
 - [ ] Github action to build docker image
 - [ ] Deploy from docker image
 

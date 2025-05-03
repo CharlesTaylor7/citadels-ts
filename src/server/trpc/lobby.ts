@@ -22,8 +22,8 @@ const roomSchema = z.object({
   members: z.array(playerSchema),
 });
 
-type Player = z.infer<typeof playerSchema>;
-type Room = z.infer<typeof roomSchema>;
+export type Player = z.infer<typeof playerSchema>;
+export type Room = z.infer<typeof roomSchema>;
 
 export const lobbyRouter = router({
   rooms: loggedInProcedure
@@ -208,8 +208,8 @@ export const lobbyRouter = router({
         .where(
           and(
             eq(room_members.roomId, input.roomId),
-            eq(room_members.playerId, userId)
-          )
+            eq(room_members.playerId, userId),
+          ),
         )
         .get();
 
@@ -273,8 +273,8 @@ export const lobbyRouter = router({
         .where(
           and(
             eq(room_members.playerId, userId),
-            eq(room_members.roomId, input.roomId)
-          )
+            eq(room_members.roomId, input.roomId),
+          ),
         )
         .get();
 

@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { trpc } from "@/client/router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/lobby")({
   component: LobbyComponent,
@@ -14,13 +14,37 @@ function LobbyComponent() {
   const rooms = lobbyQuery.data || [];
   const userRoom = rooms.find((r) => r.members.some((m) => m.id === userId));
 
-  const startGameMutation = useMutation(trpc.lobby.startGame.mutationOptions());
-  const closeRoomMutation = useMutation(trpc.lobby.closeRoom.mutationOptions());
-  const leaveRoomMutation = useMutation(trpc.lobby.leaveRoom.mutationOptions());
-  const createRoomMutation = useMutation(
-    trpc.lobby.createRoom.mutationOptions(),
-  );
-  const joinRoomMutation = useMutation(trpc.lobby.joinRoom.mutationOptions());
+  const queryClient = useQueryClient();
+
+  const startGameMutation = useMutation({
+    ...trpc.lobby.startGame.mutationOptions(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: trpc.lobby.rooms.queryKey(),
+      }),
+  });
+  const leaveRoomMutation = useMutation({
+    ...trpc.lobby.leaveRoom.mutationOptions(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: trpc.lobby.rooms.queryKey(),
+      }),
+  });
+  console.log(trpc.lobby.createRoom.mutationOptions());
+  const createRoomMutation = useMutation({
+    ...trpc.lobby.createRoom.mutationOptions(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: trpc.lobby.rooms.queryKey(),
+      }),
+  });
+  const joinRoomMutation = useMutation({
+    ...trpc.lobby.joinRoom.mutationOptions(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: trpc.lobby.rooms.queryKey(),
+      }),
+  });
   return (
     <>
       <div className="bg-base-100 rounded-box shadow-sm mb-6">
@@ -89,8 +113,8 @@ function LobbyComponent() {
                           >
                             Start Game
                           </button>
-                                                  </>
-                      ) }
+                        </>
+                      ) : null}
                     </div>
                   )}
 
@@ -127,19 +151,22 @@ function LobbyComponent() {
                       <div className="w-full text-center text-sm text-gray-500">
                         Game already in progress
                       </div>
-                    ) 
-                    : userRoom?.id === room.id ?
-                        (<button
-                          onClick={() => leaveRoomMutation.mutate({ roomId: room.id }) }
-                          disabled={leaveRoomMutation.isPending}
-                          className="btn btn-warning btn-sm"
-                        >
-                          Leave
-                        </button>)
-                    : (
+                    ) : userRoom?.id === room.id ? (
                       <button
-                        onClick={() => joinRoomMutation.mutate({ roomId: room.id }) }
-                        disabled={ joinRoomMutation.isPending }
+                        onClick={() =>
+                          leaveRoomMutation.mutate({ roomId: room.id })
+                        }
+                        disabled={leaveRoomMutation.isPending}
+                        className="btn btn-warning btn-sm"
+                      >
+                        Leave
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          joinRoomMutation.mutate({ roomId: room.id })
+                        }
+                        disabled={joinRoomMutation.isPending}
                         className="btn btn-primary "
                       >
                         Join Room
