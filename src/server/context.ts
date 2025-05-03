@@ -5,8 +5,8 @@ import { eq } from "drizzle-orm";
 import { connect } from "@/server/db";
 
 export type Context = {
-  request: unknown;
-  responseHeaders: unknown;
+  request: Request;
+  responseHeaders: Headers;
   session: UserSession;
   db: Awaited<ReturnType<typeof connect>>;
 };

@@ -9,14 +9,17 @@ import { newSeed } from "@/server/game/random";
 
 type Player = { id: string; name: string; owner: boolean };
 type Room = {
+  id: string;
   name: string;
   members: Player[];
+  gameId: number | null;
 };
 export const lobbyRouter = trpc.router({
-  rooms: trpc.procedure.query<Room[]>(async ({ ctx: { session, db } }) => {
+  rooms: trpc.procedure.query<Room[]>(async ({ ctx: { db } }) => {
     const roomsWithMembers = await db
       .select({
         roomId: rooms.id,
+        gameId: rooms.gameId,
         roomName: rooms.name,
         playerId: room_members.playerId,
         owner: room_members.owner,
@@ -31,7 +34,12 @@ export const lobbyRouter = trpc.router({
     for (const row of roomsWithMembers) {
       let record = roomMap.get(row.roomId);
       if (!record) {
-        record = { name: row.roomName, members: [] };
+        record = {
+          id: row.roomId,
+          gameId: row.gameId,
+          name: row.roomName,
+          members: [],
+        };
         roomMap.set(row.roomId, record);
       }
       record.members.push({
@@ -193,8 +201,8 @@ export const lobbyRouter = trpc.router({
         .where(
           and(
             eq(room_members.roomId, input.roomId),
-            eq(room_members.playerId, session.user.id)
-          )
+            eq(room_members.playerId, session.user.id),
+          ),
         )
         .get();
 
@@ -255,8 +263,8 @@ export const lobbyRouter = trpc.router({
         .where(
           and(
             eq(room_members.playerId, session.user?.id),
-            eq(room_members.roomId, input.roomId)
-          )
+            eq(room_members.roomId, input.roomId),
+          ),
         )
         .get();
 

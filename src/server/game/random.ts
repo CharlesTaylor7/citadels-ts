@@ -1,5 +1,8 @@
+//https://prng.di.unimi.it/
+//https://www.npmjs.com/package/prng-xoshiro
+
 import crypto from "node:crypto";
-// import xoshiro, { type PRNG } from "@apocentre/xoshiro";
+import { XoShiRo128StarStar, type Generator128 } from "prng-xoshiro";
 
 /**
  * Shuffle an array in-place
@@ -15,21 +18,26 @@ export function shuffle<T>(array: T[], rng: RNG): void {
 export type RNG = (max: number) => number;
 
 export function systemRandom(max: number): number {
-  return Math.floor(Math.random() * max);
+  return crypto.randomInt(max);
 }
 
+type Seed = bigint;
+type PRNG = Generator128;
 export function newSeed(): Seed {
-  return crypto.randomBytes(32).toString("hex");
+  return BigInt("0x" + crypto.randomBytes(8).toString("hex"));
 }
 
 export function newPrng(seed: Seed): PRNG {
-  const prng = xoshiro.create("256+", Buffer.from(seed));
-  console.log(prng.state);
-  return prng;
+  return XoShiRo128StarStar(seed);
 }
 
 export function asRng(prng: PRNG): RNG {
-  return (n) => prng.roll() % n;
+  return prng.nextNumber;
 }
 
-export type Seed = string;
+const prng = newPrng(newSeed());
+console.log(prng);
+console.log(prng.nextNumber(10));
+console.log(prng.nextNumber(10));
+console.log(prng.nextNumber(10));
+console.log(prng.nextNumber(10));
