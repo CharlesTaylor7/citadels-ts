@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SignupImport } from './routes/signup'
+import { Route as LoginImport } from './routes/login'
 import { Route as DashboardImport } from './routes/dashboard'
 import { Route as IndexImport } from './routes/index'
 import { Route as DashboardIndexImport } from './routes/dashboard.index'
@@ -23,6 +24,10 @@ import { Route as DashboardPostsPostIdImport } from './routes/dashboard.posts.$p
 
 const SignupRoute = SignupImport.update({
           id: '/signup',path: '/signup',getParentRoute: () => rootRoute
+        }as any)
+
+const LoginRoute = LoginImport.update({
+          id: '/login',path: '/login',getParentRoute: () => rootRoute
         }as any)
 
 const DashboardRoute = DashboardImport.update({
@@ -65,6 +70,13 @@ declare module '@tanstack/react-router' {
           path: '/dashboard'
           fullPath: '/dashboard'
           preLoaderRoute: typeof DashboardImport
+          parentRoute: typeof rootRoute
+        }
+'/login': {
+          id: '/login'
+          path: '/login'
+          fullPath: '/login'
+          preLoaderRoute: typeof LoginImport
           parentRoute: typeof rootRoute
         }
 '/signup': {
@@ -130,33 +142,33 @@ const DashboardRouteChildren: DashboardRouteChildren = {
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(DashboardRouteChildren)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute,'/dashboard': typeof DashboardRouteWithChildren,'/signup': typeof SignupRoute,'/dashboard/posts': typeof DashboardPostsRouteWithChildren,'/dashboard/': typeof DashboardIndexRoute,'/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute,'/dashboard/posts/': typeof DashboardPostsIndexRoute
+  '/': typeof IndexRoute,'/dashboard': typeof DashboardRouteWithChildren,'/login': typeof LoginRoute,'/signup': typeof SignupRoute,'/dashboard/posts': typeof DashboardPostsRouteWithChildren,'/dashboard/': typeof DashboardIndexRoute,'/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute,'/dashboard/posts/': typeof DashboardPostsIndexRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute,'/signup': typeof SignupRoute,'/dashboard': typeof DashboardIndexRoute,'/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute,'/dashboard/posts': typeof DashboardPostsIndexRoute
+  '/': typeof IndexRoute,'/login': typeof LoginRoute,'/signup': typeof SignupRoute,'/dashboard': typeof DashboardIndexRoute,'/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute,'/dashboard/posts': typeof DashboardPostsIndexRoute
 }
 
 export interface FileRoutesById {
   '__root__': typeof rootRoute,
-  '/': typeof IndexRoute,'/dashboard': typeof DashboardRouteWithChildren,'/signup': typeof SignupRoute,'/dashboard/posts': typeof DashboardPostsRouteWithChildren,'/dashboard/': typeof DashboardIndexRoute,'/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute,'/dashboard/posts/': typeof DashboardPostsIndexRoute
+  '/': typeof IndexRoute,'/dashboard': typeof DashboardRouteWithChildren,'/login': typeof LoginRoute,'/signup': typeof SignupRoute,'/dashboard/posts': typeof DashboardPostsRouteWithChildren,'/dashboard/': typeof DashboardIndexRoute,'/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute,'/dashboard/posts/': typeof DashboardPostsIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'|'/dashboard'|'/signup'|'/dashboard/posts'|'/dashboard/'|'/dashboard/posts/$postId'|'/dashboard/posts/'
+  fullPaths: '/'|'/dashboard'|'/login'|'/signup'|'/dashboard/posts'|'/dashboard/'|'/dashboard/posts/$postId'|'/dashboard/posts/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'|'/signup'|'/dashboard'|'/dashboard/posts/$postId'|'/dashboard/posts'
-  id: '__root__'|'/'|'/dashboard'|'/signup'|'/dashboard/posts'|'/dashboard/'|'/dashboard/posts/$postId'|'/dashboard/posts/'
+  to: '/'|'/login'|'/signup'|'/dashboard'|'/dashboard/posts/$postId'|'/dashboard/posts'
+  id: '__root__'|'/'|'/dashboard'|'/login'|'/signup'|'/dashboard/posts'|'/dashboard/'|'/dashboard/posts/$postId'|'/dashboard/posts/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute,DashboardRoute: typeof DashboardRouteWithChildren,SignupRoute: typeof SignupRoute
+  IndexRoute: typeof IndexRoute,DashboardRoute: typeof DashboardRouteWithChildren,LoginRoute: typeof LoginRoute,SignupRoute: typeof SignupRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,DashboardRoute: DashboardRouteWithChildren,SignupRoute: SignupRoute
+  IndexRoute: IndexRoute,DashboardRoute: DashboardRouteWithChildren,LoginRoute: LoginRoute,SignupRoute: SignupRoute
 }
 
 export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
@@ -170,6 +182,7 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
       "children": [
         "/",
         "/dashboard",
+        "/login",
         "/signup"
       ]
     },
@@ -182,6 +195,9 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
         "/dashboard/posts",
         "/dashboard/"
       ]
+    },
+    "/login": {
+      "filePath": "login.tsx"
     },
     "/signup": {
       "filePath": "signup.tsx"

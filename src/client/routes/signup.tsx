@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { trpc } from "../router";
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/signup")({
   component: SignupComponent,
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/signup")({
 function SignupComponent() {
   const [error, setError] = useState<string>();
   const signupMutation = useMutation(trpc.auth.signup.mutationOptions());
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,13 +35,8 @@ function SignupComponent() {
       return;
     }
 
-    try {
-      await signupMutation.mutateAsync({ username, password });
-      // Redirect to home on success
-      window.location.href = "/";
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    }
+    await signupMutation.mutateAsync({ username, password });
+    navigate("/lobby");
   };
 
   return (
