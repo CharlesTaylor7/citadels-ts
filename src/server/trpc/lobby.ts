@@ -6,6 +6,21 @@ import { randomUUID } from "node:crypto";
 import { GameConfigUtils } from "@/server/game/lobby";
 import { createGame } from "@/server/game/game-state";
 import { newSeed } from "@/server/game/random";
+import { TRPCError } from "@trpc/server";
+
+// import { initTRPC, TRPCError } from '@trpc/server';
+// const t = initTRPC.create();
+// const appRouter = t.router({
+//   hello: t.procedure.query(() => {
+//     throw new TRPCError({
+//       code: 'INTERNAL_SERVER_ERROR',
+//       message: 'An unexpected error occurred, please try again later.',
+//       // optional: pass the original error to retain stack trace
+//       cause: theError,
+//     });
+//   }),
+// });
+// // [...]
 
 type Player = { id: number; name: string; owner: boolean };
 type Room = {
@@ -52,7 +67,10 @@ export const lobbyRouter = trpc.router({
   }),
   createRoom: trpc.procedure.mutation(async ({ ctx: { session, db } }) => {
     if (!session.user)
-      return { success: false, error: "User not authenticated" };
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
 
     // Check if user is already in any room
     const userRoomMembership = await db
@@ -63,11 +81,11 @@ export const lobbyRouter = trpc.router({
 
     // If user is already in a room, return error
     if (userRoomMembership) {
-      return {
-        success: false,
-        error:
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
           "You are already in a room. Leave that room first before creating a new one.",
-      };
+      });
     }
 
     // Generate a random room ID
@@ -86,14 +104,17 @@ export const lobbyRouter = trpc.router({
       owner: true,
     });
 
-    return { success: true };
+    return { roomId };
   }),
 
   leaveRoom: trpc.procedure
     .input(z.object({ roomId: z.string() }))
     .mutation(async ({ input, ctx: { session, db } }) => {
       if (!session.user)
-        return { success: false, error: "User not authenticated" };
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
 
       // Get the room
       const room = await db
@@ -103,7 +124,10 @@ export const lobbyRouter = trpc.router({
         .get();
 
       if (!room) {
-        return { success: false, error: "Room not found" };
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Room not found",
+        });
       }
 
       // Remove the user from the room_members table
@@ -112,12 +136,15 @@ export const lobbyRouter = trpc.router({
         .where(eq(room_members.playerId, session.user.id))
         .run();
 
-      return { success: true };
+      return { roomId: input.roomId };
     }),
 
   startGame: trpc.procedure.mutation(async ({ ctx: { session, db } }) => {
     if (!session.user) {
-      return { success: false, error: "User not authenticated" };
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
     }
     // Check if in room and owner
     const room_member = await db
@@ -127,14 +154,17 @@ export const lobbyRouter = trpc.router({
       .get();
 
     if (!room_member) {
-      return { success: false, error: "Room not found" };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Room not found",
+      });
     }
 
     if (!room_member.owner) {
-      return {
-        success: false,
-        error: "Only the room owner can start the game",
-      };
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only the room owner can start the game",
+      });
     }
 
     // Check if there are enough players (at least 2)
@@ -146,10 +176,10 @@ export const lobbyRouter = trpc.router({
       .all();
 
     if (roomMembers.length < 2) {
-      return {
-        success: false,
-        error: "At least 2 players are required to start the game",
-      };
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "At least 2 players are required to start the game",
+      });
     }
 
     // Create initial game state
@@ -185,14 +215,17 @@ export const lobbyRouter = trpc.router({
       .set({ gameId: game.id })
       .where(eq(rooms.id, room_member.roomId));
 
-    return { success: true, gameId: game.id };
+    return { gameId: game.id };
   }),
 
   closeRoom: trpc.procedure
     .input(z.object({ roomId: z.string() }))
     .mutation(async ({ input, ctx: { session, db } }) => {
       if (!session.user) {
-        return { success: false, error: "User not authenticated" };
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       }
       // Get the room
       const room_member = await db
@@ -201,33 +234,39 @@ export const lobbyRouter = trpc.router({
         .where(
           and(
             eq(room_members.roomId, input.roomId),
-            eq(room_members.playerId, session.user.id),
-          ),
+            eq(room_members.playerId, session.user.id)
+          )
         )
         .get();
 
       if (!room_member) {
-        return { success: false, error: "Room not found" };
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Room not found",
+        });
       }
 
       // Check if user is the owner
       if (!room_member.owner) {
-        return {
-          success: false,
-          error: "Only the room owner can close a room",
-        };
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the room owner can close a room",
+        });
       }
 
       await db.delete(rooms).where(eq(rooms.id, input.roomId)).run();
 
-      return { success: true };
+      return { roomId: input.roomId };
     }),
 
   joinRoom: trpc.procedure
     .input(z.object({ roomId: z.string() }))
     .mutation(async ({ ctx: { session, db }, input }) => {
       if (!session.user) {
-        return { success: false, error: "User not authenticated" };
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
       }
       // Check if user is already in any room
       const userRoomMembership = await db
@@ -238,11 +277,11 @@ export const lobbyRouter = trpc.router({
 
       // If user is already in a different room, return error
       if (userRoomMembership && userRoomMembership.roomId !== input.roomId) {
-        return {
-          success: false,
-          error:
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
             "You are already in another room. Leave that room first before joining a new one.",
-        };
+        });
       }
 
       // Get the room
@@ -253,7 +292,10 @@ export const lobbyRouter = trpc.router({
         .get();
 
       if (!room) {
-        return { success: false, error: "Room not found" };
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Room not found",
+        });
       }
 
       // Check if user is already in this room
@@ -263,13 +305,16 @@ export const lobbyRouter = trpc.router({
         .where(
           and(
             eq(room_members.playerId, session.user?.id),
-            eq(room_members.roomId, input.roomId),
-          ),
+            eq(room_members.roomId, input.roomId)
+          )
         )
         .get();
 
       if (isAlreadyInRoom) {
-        return { success: false, error: "You are already in this room" };
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You are already in this room",
+        });
       }
 
       // Add user to the room_members table
@@ -281,6 +326,6 @@ export const lobbyRouter = trpc.router({
         })
         .run();
 
-      return { success: true };
+      return { roomId: input.roomId };
     }),
 });
