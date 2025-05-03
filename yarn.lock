@@ -4247,6 +4247,7 @@ __metadata:
     eslint-plugin-no-type-assertion: "npm:^1.3.0"
     eslint-plugin-react: "npm:^7.37.5"
     eslint-plugin-react-hooks: "npm:^5.2.0"
+    mangata-prng-xoshiro: "npm:^3.0.0"
     prettier: "npm:^3.5.3"
     prng-xoshiro: "npm:^1.0.1"
     react: "npm:^19.0.0"
@@ -8067,6 +8068,13 @@ __metadata:
     promise-retry: "npm:^2.0.1"
     ssri: "npm:^12.0.0"
   checksum: 10c0/c40efb5e5296e7feb8e37155bde8eb70bc57d731b1f7d90e35a092fde403d7697c56fb49334d92d330d6f1ca29a98142036d6480a12681133a0a1453164cb2f0
+  languageName: node
+  linkType: hard
+
+"mangata-prng-xoshiro@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "mangata-prng-xoshiro@npm:3.0.0"
+  checksum: 10c0/44ec77185fdeaf40c285212a670e4caca05fca7cccf7dd5a037af422f34c8c51e6b1cef1a44a20cd4ecab9bada9494ad74c65a07a6be12ba40f123610e5dd9d2
   languageName: node
   linkType: hard
 
