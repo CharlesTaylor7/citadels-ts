@@ -2,13 +2,15 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { Context } from "@/server/context";
 
 const trpc = initTRPC.context<Context>().create({
+  // log errors in server
   errorFormatter({ shape }) {
-    return shape; // you can strip fields here if needed
-  },
-  onError({ error, path, type, ctx, input, req }) {
-    if (!isProd) {
-      console.error("tRPC Error:", error);
+    if (shape.data.stack) {
+      console.error(shape.data.stack);
+    } else {
+      console.error(shape.message);
     }
+    // only send back error message
+    return shape.message;
   },
 });
 export const router = trpc.router;
