@@ -1,8 +1,9 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 COPY package.json yarn.lock .yarnrc.yml ./
-RUN corepack enable
-RUN yarn install --immutable
+# Use cache mount for node_modules to speed up installation
+RUN --mount=type=cache,target=/root/.cache/yarn \
+    corepack enable && yarn install --immutable
 COPY . .
 # force IPv4 host instead of IPv6
 ENV NITRO_HOST="0.0.0.0"
