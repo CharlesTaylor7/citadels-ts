@@ -1,9 +1,10 @@
 #!/usr/bin/env nu
-# all this token grants is read access to ghcr
-const GITHUB_TOKEN = "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" 
 def main [branch: string = "main"] {
   # login to github container registry
-  $GITHUB_TOKEN | docker login ghcr.io -u CharlesTaylor7 --password-stdin
+  # const GITHUB_TOKEN = <PAT> 
+  # $GITHUB_TOKEN | docker login ghcr.io -u CharlesTaylor7 --password-stdin
+  # To login, you need to generate a classic Personal access token with read:pacakges.
+  # Github doesn't allow me to push this secret, even though I want to treat my container images as public.
   
   # deploy to fly.io
   fly deploy --local-only --strategy=immediate --image $"ghcr.io/charlestaylor7/citadels-ts:($branch)"
