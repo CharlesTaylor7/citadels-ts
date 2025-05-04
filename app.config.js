@@ -3,6 +3,7 @@ import { createApp } from "vinxi";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default createApp({
   server: {
@@ -42,6 +43,7 @@ export default createApp({
         react(),
         tailwindcss(),
         tsconfigPaths(),
+        visualizer({ filename: "stats/rollup.html" }),
       ],
     },
   ],

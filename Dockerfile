@@ -11,9 +11,6 @@ RUN yarn build
 FROM node:20-alpine AS production
 RUN apk add --no-cache sqlite
 WORKDIR /app
-COPY package.json yarn.lock .yarnrc.yml ./
-RUN corepack enable
-RUN yarn workspaces focus --production
 COPY --from=builder /app/.output ./.output
 EXPOSE 3000
 CMD ["node", ".output/server/index.mjs"]
