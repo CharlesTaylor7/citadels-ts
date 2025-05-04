@@ -36,7 +36,6 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha
-            type=raw,value=$(date +'%Y-%m-%d_%H:%M:%S')
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
