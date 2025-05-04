@@ -20,9 +20,6 @@ export default createApp({
     },
     {
       type: "http",
-      optimizeDeps: {
-        include: [],
-      },
       name: "trpc",
       base: "/trpc",
       handler: "./src/server/main.ts",
