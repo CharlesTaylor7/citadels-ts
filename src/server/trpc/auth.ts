@@ -17,24 +17,24 @@ const signinProcedure = anonymousProcedure.input(
   z.object({
     username: z.string().min(8),
     password: z.string().min(8),
-  })
+  }),
 );
 
 export const authRouter = router({
   me: loggedInProcedure.query(({ ctx }) => {
-    return { userId: ctx.userId};
+    return { userId: ctx.userId };
   }),
   logout: loggedInProcedure.mutation(
     async ({ ctx: { userId, responseHeaders } }) => {
       // expire cookie
       responseHeaders.set(
         "Set-Cookie",
-        "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly"
+        "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly",
       );
       if (!userId) return;
       // clear database entry
       await invalidateAllSessions(userId);
-    }
+    },
   ),
 
   signup: signinProcedure.mutation(
@@ -79,12 +79,12 @@ export const authRouter = router({
       // Set session cookie
       responseHeaders.set(
         "Set-Cookie",
-        `session=${token}; Path=/; HttpOnly; SameSite=Lax`
+        `session=${token}; Path=/; HttpOnly; SameSite=Lax`,
       );
       responseHeaders.set("Location", "/lobby");
 
       return { userId: result.id };
-    }
+    },
   ),
 
   login: signinProcedure.mutation(
@@ -106,7 +106,7 @@ export const authRouter = router({
       // Verify password
       const isValidPassword = await verifyPasswordHash(
         user.hashedPassword,
-        input.password
+        input.password,
       );
 
       if (!isValidPassword)
@@ -122,7 +122,7 @@ export const authRouter = router({
       // Set session cookie
       responseHeaders.set(
         "Set-Cookie",
-        `session=${token}; Path=/; HttpOnly; SameSite=Lax`
+        `session=${token}; Path=/; HttpOnly; SameSite=Lax`,
       );
       responseHeaders.set("Location", "/lobby");
       return { userId: user.id };

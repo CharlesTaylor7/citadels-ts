@@ -75,4 +75,3 @@ const City: React.FC<CityProps> = ({ city }) => {
 };
 
 export default City;
-

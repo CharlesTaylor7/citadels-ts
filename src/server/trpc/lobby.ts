@@ -320,4 +320,95 @@ export const lobbyRouter = router({
       publishRoomEvent(input.roomId);
       return { roomId: input.roomId };
     }),
+
+  transferOwnership: loggedInProcedure
+    .input(z.object({ roomId: z.string(), newOwnerId: z.number() }))
+    .mutation(async ({ input, ctx: { userId, db } }) => {
+      const roomMember = await db
+        .select()
+        .from(room_members)
+        .where(
+          and(
+            eq(room_members.roomId, input.roomId),
+            eq(room_members.playerId, userId),
+          ),
+        )
+        .get();
+
+      if (!roomMember || !roomMember.owner) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the room owner can transfer ownership",
+        });
+      }
+
+      await db
+        .update(room_members)
+        .set({ owner: false })
+        .where(eq(room_members.roomId, input.roomId))
+        .run();
+
+      await db
+        .update(room_members)
+        .set({ owner: true })
+        .where(
+          and(
+            eq(room_members.roomId, input.roomId),
+            eq(room_members.playerId, input.newOwnerId),
+          ),
+        )
+        .run();
+
+      publishRoomEvent(input.roomId);
+      return { roomId: input.roomId, newOwnerId: input.newOwnerId };
+    }),
+
+  claimOwnership: loggedInProcedure
+    .input(z.object({ roomId: z.string() }))
+    .mutation(async ({ input, ctx: { userId, db } }) => {
+      const room = await db
+        .select()
+        .from(rooms)
+        .where(eq(rooms.id, input.roomId))
+        .get();
+
+      if (!room) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Room not found",
+        });
+      }
+
+      const currentOwner = await db
+        .select()
+        .from(room_members)
+        .where(
+          and(
+            eq(room_members.roomId, input.roomId),
+            eq(room_members.owner, true),
+          ),
+        )
+        .get();
+
+      if (currentOwner) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Room already has an owner",
+        });
+      }
+
+      await db
+        .update(room_members)
+        .set({ owner: true })
+        .where(
+          and(
+            eq(room_members.roomId, input.roomId),
+            eq(room_members.playerId, userId),
+          ),
+        )
+        .run();
+
+      publishRoomEvent(input.roomId);
+      return { roomId: input.roomId };
+    }),
 });

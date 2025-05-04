@@ -36,6 +36,13 @@ function LobbyComponent() {
   const joinRoomMutation = useMutation({
     ...trpc.lobby.joinRoom.mutationOptions(),
   });
+  const transferOwnershipMutation = useMutation({
+    ...trpc.lobby.transferOwnership.mutationOptions(),
+  });
+  const claimOwnershipMutation = useMutation({
+    ...trpc.lobby.claimOwnership.mutationOptions(),
+  });
+
   return (
     <>
       <div className="bg-base-100 rounded-box shadow-sm mb-6">
@@ -128,6 +135,22 @@ function LobbyComponent() {
                                 Owner
                               </div>
                             )}
+                            {!member.owner &&
+                              room.members.find((m) => m.id === userId)
+                                ?.owner && (
+                                <button
+                                  onClick={() =>
+                                    transferOwnershipMutation.mutate({
+                                      roomId: room.id,
+                                      newOwnerId: member.id,
+                                    })
+                                  }
+                                  disabled={transferOwnershipMutation.isPending}
+                                  className="btn btn-secondary btn-xs ml-2"
+                                >
+                                  Transfer
+                                </button>
+                              )}
                           </div>
                         ))}
                       </div>
@@ -161,6 +184,21 @@ function LobbyComponent() {
                       </button>
                     )}
                   </div>
+                  {room.members.find((m) => m.id === userId)?.owner && (
+                    <div className="flex gap-2 mt-2">
+                      {room.owner == null ? (
+                        <button
+                          onClick={() =>
+                            claimOwnershipMutation.mutate({ roomId: room.id })
+                          }
+                          disabled={claimOwnershipMutation.isPending}
+                          className="btn btn-info btn-sm"
+                        >
+                          Claim Ownership
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
             );

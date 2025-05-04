@@ -3,6 +3,7 @@
   - [ ] Can view errors on page
 - [ ] lobby
     - [ ] can transfer owner
+    - [ ] Can claim ownership
     - [x] can create room
     - [x] Can display rooms
     - [x] query updates for room

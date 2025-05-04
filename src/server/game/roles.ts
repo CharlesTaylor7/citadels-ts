@@ -2,29 +2,29 @@
  * TypeScript port of the Citadels game roles
  * Converted from Rust implementation
  */
-import { CardSuit } from './types';
-import { ActionTag } from './actions';
-import { ROLES } from './characters';
+import { CardSuit } from "./types";
+import { ActionTag } from "./actions";
+import { ROLES } from "./characters";
 
 /**
  * All available ranks in the game
  */
 export const RANKS = [
-  'One',
-  'Two',
-  'Three',
-  'Four',
-  'Five',
-  'Six',
-  'Seven',
-  'Eight',
-  'Nine'
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
 ] as const;
 
 /**
  * Type representing a rank in the game
  */
-export type Rank = typeof RANKS[number];
+export type Rank = (typeof RANKS)[number];
 
 /**
  * Utility functions for Rank
@@ -64,7 +64,7 @@ export const RankUtils = {
    */
   toString(rank: Rank): string {
     return (RANKS.indexOf(rank) + 1).toString();
-  }
+  },
 };
 
 /**
@@ -72,47 +72,47 @@ export const RankUtils = {
  * Laid out in the order of the asset file for their images
  */
 export const ROLE_NAMES = [
-  'Assassin',
-  'Witch',
-  'Magistrate',
+  "Assassin",
+  "Witch",
+  "Magistrate",
 
-  'Thief',
-  'Spy',
-  'Blackmailer',
+  "Thief",
+  "Spy",
+  "Blackmailer",
 
-  'Magician',
-  'Wizard',
-  'Seer',
+  "Magician",
+  "Wizard",
+  "Seer",
 
-  'King',
-  'Emperor',
-  'Patrician',
+  "King",
+  "Emperor",
+  "Patrician",
 
-  'Bishop',
-  'Abbot',
-  'Cardinal',
+  "Bishop",
+  "Abbot",
+  "Cardinal",
 
-  'Merchant',
-  'Alchemist',
-  'Trader',
+  "Merchant",
+  "Alchemist",
+  "Trader",
 
-  'Architect',
-  'Navigator',
-  'Scholar',
+  "Architect",
+  "Navigator",
+  "Scholar",
 
-  'Warlord',
-  'Diplomat',
-  'Marshal',
+  "Warlord",
+  "Diplomat",
+  "Marshal",
 
-  'Queen',
-  'Artist',
-  'TaxCollector'
+  "Queen",
+  "Artist",
+  "TaxCollector",
 ] as const;
 
 /**
  * Type representing a role name in the game
  */
-export type RoleName = typeof ROLE_NAMES[number];
+export type RoleName = (typeof ROLE_NAMES)[number];
 
 /**
  * Utility functions for RoleName
@@ -141,8 +141,8 @@ export const RoleNameUtils = {
    * @returns The display name of the role
    */
   displayName(role: RoleName): string {
-    if (role === 'TaxCollector') {
-      return 'Tax Collector';
+    if (role === "TaxCollector") {
+      return "Tax Collector";
     }
     return role;
   },
@@ -154,11 +154,11 @@ export const RoleNameUtils = {
    */
   minPlayerCount(role: RoleName): number {
     switch (role) {
-      case 'Queen':
+      case "Queen":
         return 5;
-      case 'Emperor':
-      case 'Artist':
-      case 'TaxCollector':
+      case "Emperor":
+      case "Artist":
+      case "TaxCollector":
         return 3;
       default:
         return 0;
@@ -182,7 +182,7 @@ export const RoleNameUtils = {
   canBeDiscardedFaceUp(role: RoleName): boolean {
     // rank 4 cards cannot be discarded faceup during the draft.
     // see rulebook page 3
-    return this.data(role).rank !== 'Four';
+    return this.data(role).rank !== "Four";
   },
 
   /**
@@ -192,30 +192,30 @@ export const RoleNameUtils = {
    */
   buildLimit(role: RoleName): number {
     switch (role) {
-      case 'Architect':
+      case "Architect":
         return 3;
-      case 'Navigator':
+      case "Navigator":
         return 0;
-      case 'Scholar':
-      case 'Seer':
+      case "Scholar":
+      case "Seer":
         return 2;
       default:
         return 1;
     }
-  }
+  },
 };
 
 /**
  * Type for card sets
  */
 export const CARD_SETS = [
-  'Base',
-  'DarkCity',
-  'Citadels2016',
-  'Custom'
+  "Base",
+  "DarkCity",
+  "Citadels2016",
+  "Custom",
 ] as const;
 
-export type CardSet = typeof CARD_SETS[number];
+export type CardSet = (typeof CARD_SETS)[number];
 
 /**
  * Immutable data for a role
