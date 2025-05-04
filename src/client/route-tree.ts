@@ -15,6 +15,7 @@ import { Route as SignupImport } from './routes/signup'
 import { Route as LoginImport } from './routes/login'
 import { Route as LobbyImport } from './routes/lobby'
 import { Route as GameImport } from './routes/game'
+import { Route as DeploymentImport } from './routes/deployment'
 import { Route as IndexImport } from './routes/index'
 
 // Create/Update Routes
@@ -35,6 +36,10 @@ const GameRoute = GameImport.update({
           id: '/game',path: '/game',getParentRoute: () => rootRoute
         }as any)
 
+const DeploymentRoute = DeploymentImport.update({
+          id: '/deployment',path: '/deployment',getParentRoute: () => rootRoute
+        }as any)
+
 const IndexRoute = IndexImport.update({
           id: '/',path: '/',getParentRoute: () => rootRoute
         }as any)
@@ -48,6 +53,13 @@ declare module '@tanstack/react-router' {
           path: '/'
           fullPath: '/'
           preLoaderRoute: typeof IndexImport
+          parentRoute: typeof rootRoute
+        }
+'/deployment': {
+          id: '/deployment'
+          path: '/deployment'
+          fullPath: '/deployment'
+          preLoaderRoute: typeof DeploymentImport
           parentRoute: typeof rootRoute
         }
 '/game': {
@@ -84,33 +96,33 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute,'/game': typeof GameRoute,'/lobby': typeof LobbyRoute,'/login': typeof LoginRoute,'/signup': typeof SignupRoute
+  '/': typeof IndexRoute,'/deployment': typeof DeploymentRoute,'/game': typeof GameRoute,'/lobby': typeof LobbyRoute,'/login': typeof LoginRoute,'/signup': typeof SignupRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute,'/game': typeof GameRoute,'/lobby': typeof LobbyRoute,'/login': typeof LoginRoute,'/signup': typeof SignupRoute
+  '/': typeof IndexRoute,'/deployment': typeof DeploymentRoute,'/game': typeof GameRoute,'/lobby': typeof LobbyRoute,'/login': typeof LoginRoute,'/signup': typeof SignupRoute
 }
 
 export interface FileRoutesById {
   '__root__': typeof rootRoute,
-  '/': typeof IndexRoute,'/game': typeof GameRoute,'/lobby': typeof LobbyRoute,'/login': typeof LoginRoute,'/signup': typeof SignupRoute
+  '/': typeof IndexRoute,'/deployment': typeof DeploymentRoute,'/game': typeof GameRoute,'/lobby': typeof LobbyRoute,'/login': typeof LoginRoute,'/signup': typeof SignupRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'|'/game'|'/lobby'|'/login'|'/signup'
+  fullPaths: '/'|'/deployment'|'/game'|'/lobby'|'/login'|'/signup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'|'/game'|'/lobby'|'/login'|'/signup'
-  id: '__root__'|'/'|'/game'|'/lobby'|'/login'|'/signup'
+  to: '/'|'/deployment'|'/game'|'/lobby'|'/login'|'/signup'
+  id: '__root__'|'/'|'/deployment'|'/game'|'/lobby'|'/login'|'/signup'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute,GameRoute: typeof GameRoute,LobbyRoute: typeof LobbyRoute,LoginRoute: typeof LoginRoute,SignupRoute: typeof SignupRoute
+  IndexRoute: typeof IndexRoute,DeploymentRoute: typeof DeploymentRoute,GameRoute: typeof GameRoute,LobbyRoute: typeof LobbyRoute,LoginRoute: typeof LoginRoute,SignupRoute: typeof SignupRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,GameRoute: GameRoute,LobbyRoute: LobbyRoute,LoginRoute: LoginRoute,SignupRoute: SignupRoute
+  IndexRoute: IndexRoute,DeploymentRoute: DeploymentRoute,GameRoute: GameRoute,LobbyRoute: LobbyRoute,LoginRoute: LoginRoute,SignupRoute: SignupRoute
 }
 
 export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
@@ -123,6 +135,7 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/deployment",
         "/game",
         "/lobby",
         "/login",
@@ -131,6 +144,9 @@ export const routeTree = rootRoute._addFileChildren(rootRouteChildren)._addFileT
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/deployment": {
+      "filePath": "deployment.tsx"
     },
     "/game": {
       "filePath": "game.tsx"

@@ -7,6 +7,8 @@ COPY . .
 # force IPv4 host instead of IPv6
 ENV NITRO_HOST="0.0.0.0"
 ENV NITRO_PORT="3000"
+ARG COMMIT_SHA
+ENV VITE_COMMIT_SHA=${COMMIT_SHA}
 RUN yarn build
 FROM node:20-alpine AS production
 RUN apk add --no-cache sqlite
