@@ -16,7 +16,10 @@ export default tseslint.config({
   rules: {
     ...reactHooks.configs.recommended.rules,
     "no-type-assertion/no-type-assertion": "error",
-    "@typescript-eslint/no-empty-object-type": ["error"],
+    "@typescript-eslint/no-empty-object-type": [
+      "error",
+      { allowInterfaces: "always" },
+    ],
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-redeclare": [
       "error",

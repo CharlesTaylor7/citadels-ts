@@ -1,15 +1,44 @@
-/**
- * TypeScript port of the Citadels game state
- * Refactored from the Game class for better serialization
- */
-import { PlayerAction, Action } from "./actions";
+import { PlayerAction } from "./actions";
 import { DistrictName, DISTRICT_NAMES, DistrictNameUtils } from "./districts";
-import { ActionResult, Followup, performAction } from "./game-actions";
 import { GameConfig as GameConfig } from "./lobby";
 import { Museum } from "./museum";
 import { RoleName, ROLE_NAMES } from "./roles";
 import { CardSuit, PlayerId } from "./types";
 import { asRng, newPrng, PRNG, shuffle } from "./random";
+
+/*
+#[derive(Debug)]
+pub enum Followup {
+    Bewitch,
+    GatherCardsPick {
+        revealed: Vec<DistrictName>,
+    },
+    ScholarPick {
+        revealed: Vec<DistrictName>,
+    },
+    WizardPick {
+        player: PlayerIndex,
+    },
+    SeerDistribute {
+        players: Vec<PlayerIndex>,
+    },
+    SpyAcknowledge {
+        player: PlayerName,
+        revealed: Vec<DistrictName>,
+    },
+    Warrant {
+        signed: bool,
+        magistrate: PlayerIndex,
+        gold: usize,
+        district: DistrictName,
+    },
+    Blackmail {
+        blackmailer: PlayerIndex,
+    },
+    HandleBlackmail,
+}
+*/
+export interface Followup {}
 
 export interface ActionOutput {
   log: string;
@@ -18,9 +47,6 @@ export interface ActionOutput {
   notifications: Notification[];
 }
 
-/**
- * Player index type
- */
 export type PlayerIndex = number;
 
 /**

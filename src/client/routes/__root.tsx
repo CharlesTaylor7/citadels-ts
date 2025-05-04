@@ -60,26 +60,8 @@ function RootComponent() {
                   Game
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/about"
-                  className="btn btn-ghost btn-sm"
-                  activeProps={{ className: "btn-outline" }}
-                >
-                  About
-                </Link>
-              </li>
               {user ? (
                 <>
-                  <li>
-                    <Link
-                      to="/profile"
-                      className="btn btn-ghost btn-sm"
-                      activeProps={{ className: "btn-outline" }}
-                    >
-                      Profile
-                    </Link>
-                  </li>
                   <li>
                     <button
                       onClick={() => logout()}

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { trpc } from "../router";
 import { useMutation } from "@tanstack/react-query";
@@ -10,8 +9,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginComponent() {
   const loginMutation = useMutation(trpc.auth.login.mutationOptions());
-  const error = loginMutation.error;
-  console.log(error);
+  const error = loginMutation.error?.message;
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -19,6 +17,7 @@ function LoginComponent() {
     const formData = new FormData(e.currentTarget);
     const username = formData.get("username");
     const password = formData.get("password");
+    // @ts-expect-error the trpc handler will check for this
     await loginMutation.mutateAsync({ username, password });
     navigate({ to: "/lobby" });
   };

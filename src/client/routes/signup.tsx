@@ -20,23 +20,14 @@ function SignupComponent() {
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
 
-    // Validate inputs
-    if (
-      typeof username !== "string" ||
-      typeof password !== "string" ||
-      typeof confirmPassword !== "string"
-    ) {
-      setError("All fields are required");
-      return;
-    }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
+    // @ts-expect-error the trpc handler will check for this
     await signupMutation.mutateAsync({ username, password });
-    navigate("/lobby");
+    navigate({ to: "/lobby" });
   };
 
   return (

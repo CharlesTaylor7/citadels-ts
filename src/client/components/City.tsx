@@ -1,35 +1,37 @@
-import React from 'react';
-import District from './District';
-import { DistrictName } from '../game/districts';
-import { CardSuit } from '../game/types';
+import React from "react";
+import District from "@/client/components/District";
+import { DistrictName } from "@/server/game/districts";
+import { CardSuit } from "@/server/game/types";
 
 interface CityProps {
   city: {
     header: string;
     margin_bottom: number;
-    columns: Array<Array<{
-      value: DistrictName;
-      name: string;
-      description?: string;
-      suit: CardSuit;
-      cost?: number;
-      beautified?: boolean;
-      pos: {
-        x: number;
-        y: number;
-        z: number;
-      };
-      asset: {
-        height: number;
-        width: number;
-        brightness: number;
-        offset_x: number;
-        offset_y: number;
-        scale_percentage: number;
-        path: string;
-      };
-      artifacts: string[];
-    }>>
+    columns: Array<
+      Array<{
+        value: DistrictName;
+        name: string;
+        description?: string;
+        suit: CardSuit;
+        cost?: number;
+        beautified?: boolean;
+        pos: {
+          x: number;
+          y: number;
+          z: number;
+        };
+        asset: {
+          height: number;
+          width: number;
+          brightness: number;
+          offset_x: number;
+          offset_y: number;
+          scale_percentage: number;
+          path: string;
+        };
+        artifacts: string[];
+      }>
+    >;
   };
 }
 
@@ -42,7 +44,7 @@ const City: React.FC<CityProps> = ({ city }) => {
 
   // Use useEffect to initialize drag functionality
   React.useEffect(() => {
-    enableDrag('#city');
+    enableDrag("#city");
   }, []);
 
   return (
@@ -50,12 +52,8 @@ const City: React.FC<CityProps> = ({ city }) => {
       id="city"
       className="panel grow overflow-y-scroll overflow-x-hidden flex flex-col"
     >
-      <h2 className="header">
-        {city.header}
-      </h2>
-      <div
-        style={{ marginBottom: `${city.margin_bottom}px` }}
-      >
+      <h2 className="header">{city.header}</h2>
+      <div style={{ marginBottom: `${city.margin_bottom}px` }}>
         <div className="flex flex-row flex-wrap gap-2">
           {city.columns.map((column, colIndex) => (
             <div key={colIndex} className="flex flex-col">
@@ -77,3 +75,4 @@ const City: React.FC<CityProps> = ({ city }) => {
 };
 
 export default City;
+

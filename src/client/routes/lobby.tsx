@@ -86,10 +86,7 @@ function LobbyComponent() {
                   {room.members.some((m) => m.id === userId) && (
                     <div className="absolute top-2 right-2 flex gap-2">
                       {room.gameId ? (
-                        <Link
-                          to={`/game/${room.id}`}
-                          className="btn btn-primary btn-sm"
-                        >
+                        <Link to="/game" className="btn btn-primary btn-sm">
                           Continue Game
                         </Link>
                       ) : room.members.find((m) => m.id === userId)?.owner ? (
