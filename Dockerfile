@@ -14,5 +14,6 @@ FROM node:20-alpine AS production
 RUN apk add --no-cache sqlite
 WORKDIR /app
 COPY --from=builder /app/.output ./.output
+COPY --from=builder /app/drizzle ./drizzle
 EXPOSE 3000
 CMD ["node", ".output/server/index.mjs"]
