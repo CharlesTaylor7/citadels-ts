@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/deployment")({
-  component: RouteComponent,
+  component: Deployment,
 });
 
 const SHA = import.meta.env.VITE_COMMIT_SHA;
 const environment = SHA ? `Deployed: ${SHA}` : "Development";
 
-function RouteComponent() {
+function Deployment() {
   return <div>{environment}</div>;
 }
