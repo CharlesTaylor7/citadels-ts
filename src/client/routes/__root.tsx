@@ -19,6 +19,9 @@ export interface RouterAppContext {
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
+  loader: async ({ context: { trpc, queryClient } }) => {
+    await queryClient.ensureQueryData(trpc.auth.me.queryOptions());
+  },
 });
 
 function RootComponent() {

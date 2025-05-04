@@ -5,6 +5,9 @@ import { useSubscription } from "@trpc/tanstack-react-query";
 
 export const Route = createFileRoute("/lobby")({
   component: LobbyComponent,
+  loader: async ({ context: { trpc, queryClient } }) => {
+    await queryClient.ensureQueryData(trpc.lobby.rooms.queryOptions());
+  },
 });
 
 function LobbyComponent() {

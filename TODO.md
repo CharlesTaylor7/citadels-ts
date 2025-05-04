@@ -1,9 +1,11 @@
 # Shortlist   
 - [ ] Login/signup
   - [ ] Can view errors on page
+- [ ] Card viewer
 - [ ] lobby
-    - [ ] can transfer owner
-    - [ ] Can claim ownership
+    - [x] flicker on load. use loader?
+    - [x] can transfer owner
+    - [x] Can claim ownership
     - [x] can create room
     - [x] Can display rooms
     - [x] query updates for room
